@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnonChat Pro</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-surface: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border-color: #334155;
+            --chat-user: #6366f1;
+            --chat-partner: #334155;
+        }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --border-color: #e2e8f0;
+            --chat-user: #4f46e5;
+            --chat-partner: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-primary); color: var(--text-main); transition: background 0.3s; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .hidden { display: none !important; }
+        .app-container { width: 100%; max-width: 1000px; height: 90vh; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+        .sidebar { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        .profile-card h3 { margin-bottom: 5px; font-size: 1.2rem; }
+        .profile-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;}
+        .btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn:hover { background: var(--accent-hover); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); margin-top: 10px; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+        .auth-panel { grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; max-width: 400px; margin: 0 auto; width: 100%; height: 100%; padding: 20px; }
+        .auth-panel h2 { margin-bottom: 20px; }
+        .input-group { width: 100%; margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 12px; border-radius: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); outline: none; }
+        .chat-area { display: flex; flex-direction: column; height: 100%; position: relative; }
+        .chat-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg-bubble { max-width: 70%; padding: 12px 16px; border-radius: 12px; line-height: 1.4; font-size: 0.95rem; word-break: break-word; }
+        .msg-bubble.me { background: var(--chat-user); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
+        .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; font-style: italic; margin: 8px 0; }
+        .chat-input-bar { padding: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; }
+        .chat-input-bar input { flex: 1; padding: 12px; border-radius: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); outline: none; }
+        .chat-input-bar .btn { width: auto; padding: 0 24px; }
+        .theme-toggle { cursor: pointer; padding: 8px; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; align-self: flex-start; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div id="auth-view" class="auth-panel">
+            <h2 id="auth-title">Sign In / Join</h2>
+            <div class="input-group">
+                <label>Custom Username</label>
+                <input type="text" id="username" placeholder="e.g. ShadowCoder">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <button class="btn" id="btn-login">Login</button>
+            <button class="btn btn-secondary" id="btn-register">Create Account</button>
+            <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:15px;" class="hidden"></p>
+        </div>
+
+        <div id="sidebar-view" class="sidebar hidden">
+            <div class="profile-card">
+                <p>Logged in as:</p>
+                <h3 id="profile-display-name">Guest User</h3>
+                <span class="status-system">Status: Ready to Match</span>
+                <hr style="border-color: var(--border-color); margin: 15px 0;">
+                <button class="btn" id="btn-match">⚡ Find Match</button>
+                <button class="btn btn-secondary btn-danger hidden" id="btn-skip">⏩ Skip / Next</button>
+            </div>
+            <button class="theme-toggle" id="theme-btn">🌓 Toggle Theme</button>
+        </div>
+
+        <div id="chat-view" class="chat-area hidden">
+            <div class="chat-header">
+                <div>
+                    <h4 id="partner-status-title">Stranger Profile</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted);" id="partner-subtext">No connection active.</p>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chat-box">
+                <div class="status-system">Click "Find Match" to start searching for random users.</div>
+            </div>
+
+            <div class="chat-input-bar">
+                <input type="text" id="msg-input" placeholder="Say something interesting..." disabled>
+                <button class="btn" id="btn-send" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Connects dynamically to whatever host is serving the file
+        const socket = io(window.location.origin);
+        let currentTheme = 'dark';
+        let myUsername = '';
+
+        const elements = {
+            authView: document.getElementById('auth-view'),
+            sidebarView: document.getElementById('sidebar-view'),
+            chatView: document.getElementById('chat-view'),
+            usernameInp: document.getElementById('username'),
+            passwordInp: document.getElementById('password'),
+            loginBtn: document.getElementById('btn-login'),
+            registerBtn: document.getElementById('btn-register'),
+            authError: document.getElementById('auth-error'),
+            profileName: document.getElementById('profile-display-name'),
+            matchBtn: document.getElementById('btn-match'),
+            skipBtn: document.getElementById('btn-skip'),
+            themeBtn: document.getElementById('theme-btn'),
+            partnerTitle: document.getElementById('partner-status-title'),
+            partnerSub: document.getElementById('partner-subtext'),
+            chatBox: document.getElementById('chat-box'),
+            msgInp: document.getElementById('msg-input'),
+            sendBtn: document.getElementById('btn-send')
+        };
+
+        elements.themeBtn.addEventListener('click', () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+        });
+
+        elements.loginBtn.addEventListener('click', () => submitAuth(false));
+        elements.registerBtn.addEventListener('click', () => submitAuth(true));
+
+        function submitAuth(isRegistering) {
+            socket.emit('auth', {
+                username: elements.usernameInp.value.trim(),
+                password: elements.passwordInp.value,
+                isRegistering
+            });
+        }
+
+        socket.on('auth-response', (res) => {
+            if (res.success) {
+                myUsername = res.username;
+                elements.profileName.innerText = myUsername;
+                elements.authView.classList.add('hidden');
+                elements.sidebarView.classList.remove('hidden');
+                elements.chatView.classList.remove('hidden');
+            } else {
+                elements.authError.innerText = res.message;
+                elements.authError.classList.remove('hidden');
+            }
+        });
+
+        elements.matchBtn.addEventListener('click', () => {
+            socket.emit('find-match');
+        });
+
+        elements.skipBtn.addEventListener('click', () => {
+            socket.emit('skip-match');
+            resetChatState('You skipped the conversation.');
+        });
+
+        socket.on('waiting', () => {
+            elements.matchBtn.classList.add('hidden');
+            appendSystemMessage('Searching for a partner...');
+        });
+
+        socket.on('match-found', (data) => {
+            elements.matchBtn.classList.add('hidden');
+            elements.skipBtn.classList.remove('hidden');
+            elements.msgInp.removeAttribute('disabled');
+            elements.sendBtn.removeAttribute('disabled');
+            elements.partnerTitle.innerText = data.partnerName;
+            elements.partnerSub.innerText = "Connected & Active";
+            elements.chatBox.innerHTML = '';
+            appendSystemMessage(`Matched with ${data.partnerName}. Say hello!`);
+        });
+
+        elements.sendBtn.addEventListener('click', dispatchMessage);
+        elements.msgInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') dispatchMessage(); });
+
+        function dispatchMessage() {
+            const txt = elements.msgInp.value.trim();
+            if(!txt) return;
+            socket.emit('send-message', txt);
+            appendMessage(txt, 'me');
+            elements.msgInp.value = '';
+        }
+
+        socket.on('receive-message', (msg) => {
+            appendMessage(msg, 'them');
+        });
+
+        socket.on('partner-disconnected', () => {
+            resetChatState('Your partner disconnected.');
+        });
+
+        function resetChatState(reasonText) {
+            elements.msgInp.setAttribute('disabled', 'true');
+            elements.sendBtn.setAttribute('disabled', 'true');
+            elements.msgInp.value = '';
+            elements.partnerTitle.innerText = "Stranger Profile";
+            elements.partnerSub.innerText = "Disconnected";
+            elements.skipBtn.classList.add('hidden');
+            elements.matchBtn.classList.remove('hidden');
+            appendSystemMessage(reasonText);
+        }
+
+        function appendMessage(text, side) {
+            const bubble = document.createElement('div');
+            bubble.className = `msg-bubble ${side}`;
+            bubble.innerText = text;
+            elements.chatBox.appendChild(bubble);
+            elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+        }
+
+        function appendSystemMessage(text) {
+            const systemNode = document.createElement('div');
+            systemNode.className = 'status-system';
+            systemNode.innerText = text;
+            elements.chatBox.appendChild(systemNode);
+            elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
