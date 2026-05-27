@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AnonChat Pro v2.2</title>
+    <title>AnonChat Pro Dashboard</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root[data-theme="dark"] {
@@ -12,244 +12,155 @@
             --text-main: #f8fafc;
             --text-muted: #64748b;
             --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            --accent-glow: rgba(147, 51, 234, 0.3);
             --border-color: #1e293b;
             --chat-user: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             --chat-partner: #1e293b;
         }
-
         :root[data-theme="light"] {
             --bg-primary: #f1f5f9;
             --bg-surface: #ffffff;
             --text-main: #0f172a;
             --text-muted: #94a3b8;
             --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-            --accent-glow: rgba(6, 182, 212, 0.2);
             --border-color: #cbd5e1;
             --chat-user: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
             --chat-partner: #e2e8f0;
         }
 
-        * { 
-            margin: 0; padding: 0; box-sizing: border-box; 
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        html, body {
-            width: 100%;
-            height: 100dvh; /* Enforces strict dynamic viewport height tracking */
-            overflow: hidden;
-            background-color: var(--bg-primary);
-        }
-
-        body { 
-            color: var(--text-main); 
-            transition: background 0.3s;
-            display: flex;
-            flex-direction: column;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100dvh; overflow: hidden; background-color: var(--bg-primary); color: var(--text-main); }
         .hidden { display: none !important; }
-        
-        /* Layout Structure */
-        .app-container { 
-            width: 100%; height: 100%; background: var(--bg-surface); 
-            display: grid; grid-template-columns: 320px 1fr; overflow: hidden; 
-        }
 
-        /* Sidebar UI styling */
-        .sidebar { 
-            background: var(--bg-surface); border-right: 1px solid var(--border-color); 
-            display: flex; flex-direction: column; justify-content: space-between; padding: 28px; 
-        }
-        .brand-logo { font-size: 1.5rem; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 24px; letter-spacing: -0.5px; }
+        /* Dashboard Container Layout */
+        .app-container { width: 100%; height: 100%; display: grid; grid-template-columns: 280px 1fr 300px; overflow: hidden; }
+
+        /* Left Side Menu Controls */
+        .sidebar-left { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        .brand { font-size: 1.4rem; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Middle Workspace: Houses Streaming Frames and Panels */
+        .main-dashboard { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
         
-        .btn { 
-            width: 100%; padding: 14px; background: var(--accent-gradient); color: white; 
-            border: none; border-radius: 14px; font-weight: 600; cursor: pointer; 
-            transition: transform 0.2s, box-shadow 0.2s; font-size: 0.95rem;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 4px 12px var(--accent-glow);
-        }
-        .btn:active { transform: scale(0.98); }
-        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none; margin-top: 12px; }
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+        /* Video Stream Engine Display Grid Layout */
+        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; background: var(--bg-primary); flex-shrink: 0; height: 40%; min-height: 200px; }
+        .video-wrapper { position: relative; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); }
+        .video-wrapper video { width: 100%; height: 100%; object-fit: cover; }
+        .video-label { position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; backdrop-filter: blur(4px); }
+
+        /* Text Feed Module Workspace Area */
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-surface); overflow: hidden; border-top: 1px solid var(--border-color); }
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg-bubble { max-width: 70%; padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; word-break: break-word; }
+        .msg-bubble.me { background: var(--chat-user); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
+        .status-system { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin: 4px 0; background: rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 20px; align-self: center; }
+
+        /* Input Controls Layout Panel bar */
+        .chat-input-bar { padding: 12px 16px; background: var(--bg-surface); border-top: 1px solid var(--border-color); display: flex; gap: 8px; align-items: center; }
+        .input-box-wrapper { flex: 1; display: flex; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 0 12px; align-items: center; }
+        .input-box-wrapper input { flex: 1; padding: 12px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 0.95rem; }
+        
+        .btn { padding: 12px 16px; background: var(--accent-gradient); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+
+        /* Right Sidebar Layout: Created Specifically For Your Ad Banners */
+        .sidebar-right { background: var(--bg-surface); border-left: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        .ad-space-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .ad-banner { width: 100%; min-height: 150px; background: var(--bg-primary); border: 2px dashed var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 12px; }
+
+        /* Match Deck Display Cover Overlay */
+        .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
 
         /* Auth Panel and credential wrappers */
-        .auth-panel { 
-            grid-column: span 2; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; max-width: 400px; 
-            margin: 0 auto; width: 100%; height: 100%; padding: 24px; 
-        }
-        .auth-form { width: 100%; display: flex; flex-direction: column; align-items: center; }
-        .auth-panel h2 { margin-bottom: 8px; font-size: 2rem; font-weight: 800; }
-        .auth-panel p { color: var(--text-muted); margin-bottom: 28px; font-size: 0.9rem; }
-        .input-group { width: 100%; margin-bottom: 18px; }
-        .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .input-group input { 
-            width: 100%; padding: 16px; border-radius: 14px; background: var(--bg-primary); 
-            border: 1px solid var(--border-color); color: var(--text-main); outline: none; 
-            font-size: 1rem; transition: border-color 0.2s;
-        }
-        .input-group input:focus { border-color: #6366f1; }
+        .auth-panel { position: fixed; inset: 0; background: var(--bg-primary); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+        .auth-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 14px; }
+        .auth-form input { width: 100%; padding: 14px; border-radius: 12px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); outline: none; }
 
-        /* Chat Layout Area - Strict overflow controls prevent cutting */
-        .chat-area { 
-            display: flex; flex-direction: column; 
-            height: 100dvh; background: var(--bg-primary); 
-            width: 100%; position: relative; overflow: hidden; 
-        }
-        .chat-header { 
-            padding: 14px 20px; background: var(--bg-surface);
-            border-bottom: 1px solid var(--border-color); display: flex; 
-            justify-content: space-between; align-items: center; z-index: 5;
-            flex-shrink: 0;
-        }
-        .partner-info h4 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; }
-
-        .chat-window-box { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        
-        .chat-messages { 
-            flex: 1; padding: 20px; overflow-y: auto; 
-            display: flex; flex-direction: column; gap: 14px;
-            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
-        }
-        
-        .msg-bubble { 
-            max-width: 75%; padding: 14px 18px; border-radius: 18px; 
-            line-height: 1.5; font-size: 0.98rem; word-break: break-word; 
-            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .msg-bubble.me { background: var(--chat-user); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 4px; }
-        .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; margin: 12px 0; background: rgba(0,0,0,0.1); padding: 6px 14px; border-radius: 20px; align-self: center; }
-
-        /* Dynamic Input Wrapper Layout - Optimized for Mobile Screen Constraints */
-        .chat-input-wrapper { 
-            background: var(--bg-surface); 
-            border-top: 1px solid var(--border-color); 
-            padding: 12px 16px; 
-            display: flex; flex-direction: column; gap: 10px; 
-            flex-shrink: 0;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom)); 
-        }
-        .chat-input-bar { display: flex; gap: 10px; align-items: center; width: 100%; }
-        
-        .input-field-container { flex: 1; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 2px 8px 2px 14px; transition: border-color 0.2s; }
-        .input-field-container:focus-within { border-color: #6366f1; }
-        .input-field-container input { flex: 1; padding: 12px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
-        
-        .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px; cursor: pointer; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-        
-        .emoji-shelf { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; border-bottom: 1px solid var(--border-color); font-size: 1.4rem; -webkit-overflow-scrolling: touch; }
-        .emoji-shelf span { cursor: pointer; user-select: none; }
-
-        .theme-toggle { cursor: pointer; padding: 10px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; font-weight: 600; }
-
-        /* Match Deck Search Display Overlay */
-        .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
-        .lobby-card { max-width: 420px; width: 100%; }
-        .radar-pulse { width: 84px; height: 84px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
-        .radar-pulse::before { content: ''; position: absolute; inset: -4px; border: 2px solid #a855f7; border-radius: 50%; animation: pulseRing 1.5s linear infinite; opacity: 0; }
-
-        @keyframes pulseRing {
-            0% { transform: scale(1); opacity: 0.5; }
-            100% { transform: scale(1.6); opacity: 0; }
-        }
-        @keyframes popIn {
-            0% { transform: scale(0.9); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* Responsive Mobile Layout Adjustments */
-        @media (max-width: 768px) {
+        /* Responsive Mobile Layout Form Factor Overrides */
+        @media (max-width: 900px) {
             .app-container { grid-template-columns: 1fr; }
-            .sidebar { display: none !important; }
-            .chat-area { height: 100%; }
-            .msg-bubble { max-width: 85%; }
-            .mobile-header-btn { display: flex !important; }
+            .sidebar-left, .sidebar-right { display: none !important; }
+            .video-grid { height: 30%; }
         }
     </style>
 </head>
 <body>
 
+    <div id="auth-view" class="auth-panel">
+        <h2 style="font-size: 2rem; margin-bottom: 4px; font-weight: 800;">AnonChat Dashboard</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.9rem;">Sign in to open real-time dashboards.</p>
+        <form id="login-form" class="auth-form" onsubmit="return false;">
+            <input type="text" id="username" placeholder="Choose username..." autocomplete="username" required>
+            <input type="password" id="password" placeholder="Choose password..." autocomplete="current-password" required>
+            <button type="submit" class="btn" id="btn-login" style="justify-content: center;">Enter Dashboard</button>
+            <button type="button" class="btn btn-secondary" id="btn-register" style="justify-content: center; margin-top: -6px;">Create Profile</button>
+        </form>
+        <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:12px;" class="hidden"></p>
+    </div>
+
     <div class="app-container">
-        <div id="auth-view" class="auth-panel">
-            <div class="brand-logo" style="font-size: 2.2rem; margin-bottom: 8px;">AnonChat</div>
-            <p>Connect instantly with real people worldwide.</p>
-            
-            <form id="login-form" class="auth-form" onsubmit="return false;">
-                <div class="input-group">
-                    <label for="username">Custom Username</label>
-                    <input type="text" id="username" name="username" placeholder="Pick an alias..." autocomplete="username" required>
-                </div>
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
-                </div>
-                <button type="submit" class="btn" id="btn-login">Login Space</button>
-                <button type="button" class="btn btn-secondary" id="btn-register">Create New Profile</button>
-            </form>
-            
-            <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:15px;" class="hidden"></p>
-        </div>
-
-        <div id="sidebar-view" class="sidebar hidden">
+        
+        <div class="sidebar-left">
             <div>
-                <div class="brand-logo">AnonChat Pro</div>
-                <div style="background: var(--bg-primary); padding: 18px; border-radius: 16px; border: 1px solid var(--border-color);">
-                    <p style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Active Profile</p>
-                    <h3 id="desktop-username" style="margin-top: 4px; font-weight: 700;">Guest</h3>
-                </div>
+                <div class="brand">AnonChat Engine</div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">P2P Video & Text Platform</p>
             </div>
-            <button class="theme-toggle" id="desktop-theme-btn">🌓 Change Theme</button>
+            <div style="background: var(--bg-primary); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">USER PROFILE</span>
+                <h4 id="user-display" style="margin-top: 2px;">Guest</h4>
+            </div>
+            <button class="theme-toggle" id="theme-toggle-btn" style="width: 100%;">🌓 Toggle Theme</button>
         </div>
 
-        <div id="chat-view" class="chat-area hidden">
-            <div class="chat-header">
-                <div class="partner-info">
-                    <h4 id="header-title">Welcome Portal</h4>
-                    <p style="font-size:0.8rem; color:var(--text-muted);" id="header-subtitle">Ready to search matches</p>
-                </div>
-                <button class="theme-toggle mobile-header-btn" id="mobile-theme-btn" style="display:none;">🌓 Mode</button>
-            </div>
+        <div class="main-dashboard">
             
-            <div class="chat-window-box">
-                <div id="lobby-deck" class="lobby-overlay">
-                    <div class="lobby-card">
-                        <div class="radar-pulse" id="radar-node">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v4M8 23h8"/></svg>
-                        </div>
-                        <h3 id="lobby-status-title" style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px;">Find Your Match</h3>
-                        <p id="lobby-status-desc" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px;">No strings attached. Join rooms instantly.</p>
-                        <button class="btn" id="action-match-btn">⚡ Connect to Random User</button>
-                        <button class="btn btn-danger hidden" id="action-cancel-btn">🛑 Cancel Search</button>
-                    </div>
-                </div>
-
-                <div class="chat-messages" id="chat-box"></div>
+            <div id="lobby-deck" class="lobby-overlay">
+                <h3 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Ready to Match?</h3>
+                <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem; max-width: 320px;">Grant camera access to enable real-time WebRTC audio and video rooms.</p>
+                <button class="btn" id="start-match-btn" style="padding: 14px 28px;">⚡ Find Random Match</button>
+                <button class="btn btn-danger hidden" id="cancel-match-btn">🛑 Cancel Search</button>
             </div>
 
-            <div class="chat-input-wrapper">
-                <div class="emoji-shelf hidden" id="emoji-panel">
-                    <span>😀</span><span>😂</span><span>😍</span><span>👍</span><span>🔥</span><span>🎉</span><span>💀</span><span>👀</span><span>❤️</span><span>✨</span><span>🤔</span><span>💯</span>
+            <div class="video-grid">
+                <div class="video-wrapper">
+                    <video id="local-video" autoplay playsinline muted></video>
+                    <div class="video-label">You (My Stream)</div>
+                </div>
+                <div class="video-wrapper">
+                    <video id="remote-video" autoplay playsinline></video>
+                    <div class="video-label" id="partner-video-label">Stranger</div>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-box">
+                    <div class="status-system">Start matchmaking to open communications.</div>
                 </div>
                 
                 <div class="chat-input-bar">
-                    <button class="btn btn-danger" id="inline-skip-btn" style="width: auto; padding: 12px 16px; border-radius: 14px;" title="Skip Stranger">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    </button>
-                    
-                    <div class="input-field-container">
-                        <button class="icon-btn" id="emoji-toggle-btn" type="button">😊</button>
-                        <input type="text" id="msg-input" placeholder="Type a message..." disabled>
+                    <button class="btn btn-danger" id="skip-btn" title="Skip Session">⏩ Skip</button>
+                    <div class="input-box-wrapper">
+                        <input type="text" id="msg-input" placeholder="Type message..." disabled>
                     </div>
-                    
-                    <button class="btn" id="btn-send" style="width: auto; padding: 12px 16px;" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                    </button>
+                    <button class="btn" id="send-btn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-right">
+            <span class="ad-space-header">Sponsored Content</span>
+            
+            <div class="ad-banner">
+                <div>
+                    <h5 style="color: var(--text-main); margin-bottom: 4px;">🚀 Ad Slot Alpha</h5>
+                    <p>Place custom text ads, marketplace banners, or link campaigns here.</p>
+                </div>
+            </div>
+
+            <div class="ad-banner">
+                <div>
+                    <h5 style="color: var(--text-main); margin-bottom: 4px;">⚡ Ad Slot Beta</h5>
+                    <p>Monetize your random chat app platform with targeted offers.</p>
                 </div>
             </div>
         </div>
@@ -257,162 +168,192 @@
 
     <script>
         const socket = io(window.location.origin);
-        let themeState = 'dark';
-        let profileName = '';
-        let matchState = 'idle';
+        let theme = 'dark';
+        let localStream = null;
+        let peerConnection = null;
+        let isInitiator = false;
+
+        // Public STUN configuration endpoints to handle WebRTC NAT traversal safely for free
+        const rtcConfig = {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        };
 
         const DOM = {
             authView: document.getElementById('auth-view'),
-            sidebarView: document.getElementById('sidebar-view'),
-            chatView: document.getElementById('chat-view'),
-            usernameInp: document.getElementById('username'),
-            passwordInp: document.getElementById('password'),
             loginForm: document.getElementById('login-form'),
+            username: document.getElementById('username'),
+            password: document.getElementById('password'),
             loginBtn: document.getElementById('btn-login'),
             registerBtn: document.getElementById('btn-register'),
             authError: document.getElementById('auth-error'),
-            chatBox: document.getElementById('chat-box'),
-            msgInp: document.getElementById('msg-input'),
-            sendBtn: document.getElementById('btn-send'),
-            headerTitle: document.getElementById('header-title'),
-            headerSubtitle: document.getElementById('header-subtitle'),
+            userDisplay: document.getElementById('user-display'),
             lobbyDeck: document.getElementById('lobby-deck'),
-            lobbyTitle: document.getElementById('lobby-status-title'),
-            lobbyDesc: document.getElementById('lobby-status-desc'),
-            matchBtn: document.getElementById('action-match-btn'),
-            cancelBtn: document.getElementById('action-cancel-btn'),
-            inlineSkip: document.getElementById('inline-skip-btn'),
-            emojiToggle: document.getElementById('emoji-toggle-btn'),
-            emojiPanel: document.getElementById('emoji-panel'),
-            radar: document.getElementById('radar-node')
+            startMatch: document.getElementById('start-match-btn'),
+            cancelMatch: document.getElementById('cancel-match-btn'),
+            localVideo: document.getElementById('local-video'),
+            remoteVideo: document.getElementById('remote-video'),
+            partnerLabel: document.getElementById('partner-video-label'),
+            chatBox: document.getElementById('chat-box'),
+            msgInput: document.getElementById('msg-input'),
+            sendBtn: document.getElementById('send-btn'),
+            skipBtn: document.getElementById('skip-btn'),
+            themeBtn: document.getElementById('theme-toggle-btn')
         };
 
-        function toggleTheme() {
-            themeState = themeState === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', themeState);
-        }
-        document.getElementById('desktop-theme-btn').addEventListener('click', toggleTheme);
-        document.getElementById('mobile-theme-btn').addEventListener('click', toggleTheme);
-
-        DOM.loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            dispatchAuth(false);
+        // Theme management toggler logic
+        DOM.themeBtn.addEventListener('click', () => {
+            theme = theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
         });
-        DOM.registerBtn.addEventListener('click', () => dispatchAuth(true));
 
-        function dispatchAuth(isRegistering) {
-            const u = DOM.usernameInp.value.trim();
-            const p = DOM.passwordInp.value;
-            if(!u || !p) return;
+        // Authentication Submission Routing Pipeline
+        DOM.loginForm.addEventListener('submit', (e) => { e.preventDefault(); authRequest(false); });
+        DOM.registerBtn.addEventListener('click', () => authRequest(true));
 
-            socket.emit('auth', { username: u, password: p, isRegistering });
+        function authRequest(isRegistering) {
+            const username = DOM.username.value.trim();
+            const password = DOM.password.value;
+            if (username && password) socket.emit('auth', { username, password, isRegistering });
         }
 
         socket.on('auth-response', (res) => {
             if (res.success) {
-                profileName = res.username;
-                document.getElementById('desktop-username').innerText = profileName;
+                DOM.userDisplay.innerText = res.username;
                 DOM.authView.classList.add('hidden');
-                DOM.sidebarView.classList.remove('hidden');
-                DOM.chatView.classList.remove('hidden');
-                window.scrollTo(0,0);
+                initMediaCapture(); // Trigger camera access check as soon as dashboard unlocks
             } else {
                 DOM.authError.innerText = res.message;
                 DOM.authError.classList.remove('hidden');
             }
         });
 
-        DOM.matchBtn.addEventListener('click', () => socket.emit('find-match'));
-        DOM.cancelBtn.addEventListener('click', () => {
-            socket.emit('skip-match');
-            revertToLobby('Search cancelled.');
-        });
-
-        DOM.inlineSkip.addEventListener('click', () => {
-            if (matchState === 'connected') {
-                socket.emit('skip-match');
-                revertToLobby('You left the room.');
-            } else {
-                revertToLobby('Ready to match.');
+        // Camera capture setup initialization
+        async function initMediaCapture() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                DOM.localVideo.srcObject = localStream;
+            } catch (err) {
+                appendSystemMessage("⚠️ Camera/Microphone access rejected. Video tracking disabled.");
+                console.error("Camera access error:", err);
             }
-        });
-
-        socket.on('waiting', () => {
-            matchState = 'queuing';
-            DOM.matchBtn.classList.add('hidden');
-            DOM.cancelBtn.classList.remove('hidden');
-            DOM.lobbyTitle.innerText = "Searching...";
-            DOM.lobbyDesc.innerText = "Waiting to link with someone online.";
-        });
-
-        socket.on('match-found', (data) => {
-            matchState = 'connected';
-            DOM.lobbyDeck.classList.add('hidden');
-            DOM.msgInp.removeAttribute('disabled');
-            DOM.sendBtn.removeAttribute('disabled');
-            DOM.headerTitle.innerHTML = `<span class="status-dot"></span> ${data.partnerName}`;
-            DOM.headerSubtitle.innerText = "Secure Connection Active";
-            DOM.chatBox.innerHTML = '';
-            appendSystemMessage(`Connected with **${data.partnerName}**.`);
-            DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
-        });
-
-        socket.on('partner-disconnected', () => revertToLobby('Stranger left the session.'));
-
-        function revertToLobby(reason) {
-            matchState = 'idle';
-            DOM.msgInp.setAttribute('disabled', 'true');
-            DOM.sendBtn.setAttribute('disabled', 'true');
-            DOM.msgInp.value = '';
-            DOM.emojiPanel.classList.add('hidden');
-            DOM.headerTitle.innerText = "Welcome Portal";
-            DOM.headerSubtitle.innerText = "Disconnected";
-            DOM.cancelBtn.classList.add('hidden');
-            DOM.matchBtn.classList.remove('hidden');
-            DOM.lobbyTitle.innerText = "Find Your Match";
-            DOM.lobbyDesc.innerText = reason;
-            DOM.lobbyDeck.classList.remove('hidden');
         }
 
-        DOM.sendBtn.addEventListener('click', postMessage);
-        DOM.msgInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') postMessage(); });
+        // Matchmaking execution triggers
+        DOM.startMatch.addEventListener('click', () => socket.emit('find-match'));
+        DOM.cancelMatch.addEventListener('click', () => resetToLobby('Search cancelled.'));
+        DOM.skipBtn.addEventListener('click', () => { socket.emit('skip-match'); resetToLobby('Session closed.'); });
 
-        function postMessage() {
-            const txt = DOM.msgInp.value.trim();
-            if(!txt) return;
-            socket.emit('send-message', txt);
-            appendMessage(txt, 'me');
-            DOM.msgInp.value = '';
-            DOM.emojiPanel.classList.add('hidden');
+        socket.on('waiting', () => {
+            DOM.startMatch.classList.add('hidden');
+            DOM.cancelMatch.classList.remove('hidden');
+        });
+
+        socket.on('match-found', async (data) => {
+            DOM.lobbyDeck.classList.add('hidden');
+            DOM.msgInput.removeAttribute('disabled');
+            DOM.sendBtn.removeAttribute('disabled');
+            DOM.partnerLabel.innerText = data.partnerName;
+            DOM.chatBox.innerHTML = '';
+            appendSystemMessage(`Connected to **${data.partnerName}**.`);
+            
+            isInitiator = data.initiateCall;
+            if (localStream) setupWebRTCPeerConnection();
+        });
+
+        // WebRTC Core Signaling Pipeline Architecture Logic
+        function setupWebRTCPeerConnection() {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            // Append local track parameters to downstream channel pipes
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Stream intercept hooks to handle returning partner outputs
+            peerConnection.ontrack = (event) => {
+                if (DOM.remoteVideo.srcObject !== event.streams[0]) {
+                    DOM.remoteVideo.srcObject = event.streams[0];
+                }
+            };
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('webrtc-signal', { candidate: event.candidate });
+                }
+            };
+
+            if (isInitiator) {
+                peerConnection.onnegotiationneeded = async () => {
+                    try {
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+                        socket.emit('webrtc-signal', { sdp: peerConnection.localDescription });
+                    } catch (err) { console.error(err); }
+                };
+            }
+        }
+
+        socket.on('webrtc-signal', async (data) => {
+            if (!peerConnection) return;
+            try {
+                if (data.sdp) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    if (peerConnection.remoteDescription.type === 'offer') {
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        socket.emit('webrtc-signal', { sdp: peerConnection.localDescription });
+                    }
+                } else if (data.candidate) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        socket.on('partner-disconnected', () => resetToLobby('Your partner left the session.'));
+
+        function resetToLobby(statusMessage) {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            DOM.remoteVideo.srcObject = null;
+            DOM.msgInput.setAttribute('disabled', 'true');
+            DOM.sendBtn.setAttribute('disabled', 'true');
+            DOM.msgInput.value = '';
+            DOM.partnerLabel.innerText = "Stranger";
+            DOM.cancelMatch.classList.add('hidden');
+            DOM.startMatch.classList.remove('hidden');
+            DOM.lobbyDeck.classList.remove('hidden');
+            appendSystemMessage(statusMessage);
+        }
+
+        // Standard Text Messaging Dispatch Layers
+        DOM.sendBtn.addEventListener('click', sendMessage);
+        DOM.msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        function sendMessage() {
+            const msg = DOM.msgInput.value.trim();
+            if (!msg) return;
+            socket.emit('send-message', msg);
+            appendMessage(msg, 'me');
+            DOM.msgInput.value = '';
         }
 
         socket.on('receive-message', (msg) => appendMessage(msg, 'them'));
 
         function appendMessage(text, side) {
-            const node = document.createElement('div');
-            node.className = `msg-bubble ${side}`;
-            node.innerText = text;
-            DOM.chatBox.appendChild(node);
+            const el = document.createElement('div');
+            el.className = `msg-bubble ${side}`;
+            el.innerText = text;
+            DOM.chatBox.appendChild(el);
             DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
         }
 
         function appendSystemMessage(text) {
-            const sysNode = document.createElement('div');
-            sysNode.className = 'status-system';
-            sysNode.innerText = text;
-            DOM.chatBox.appendChild(sysNode);
+            const el = document.createElement('div');
+            el.className = 'status-system';
+            el.innerText = text;
+            DOM.chatBox.appendChild(el);
             DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
         }
-
-        DOM.emojiToggle.addEventListener('click', () => DOM.emojiPanel.classList.toggle('hidden'));
-        DOM.emojiPanel.querySelectorAll('span').forEach(em => {
-            em.addEventListener('click', () => {
-                if(!DOM.msgInp.disabled) {
-                    DOM.msgInp.value += em.innerText;
-                    DOM.msgInp.focus();
-                }
-            });
-        });
     </script>
 </body>
 </html>
