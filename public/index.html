@@ -3,219 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Omegle Fun | Live Random Chat Dashboard</title>
+    <title>Nexus Platform | Dashboard</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root[data-theme="dark"] {
-            --bg-primary: #0a0f1d;
-            --bg-surface: #141b2d;
-            --bg-card: #1e2640;
-            --text-main: #f8fafc;
-            --text-muted: #64748b;
-            --accent-gradient: linear-gradient(135deg, #ff4e50 0%, #f9d423 100%);
-            --accent-glow: rgba(255, 78, 80, 0.2);
-            --border-color: #222f4d;
-            --chat-user: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            --chat-partner: #222f4d;
+            --bg-workspace: #030712;
+            --bg-panel: #0b0f19;
+            --bg-element: #111827;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --brand-glow: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --glow-shadow: rgba(139, 92, 246, 0.15);
+            --border-line: #1f2937;
+            --bubble-me: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --bubble-them: #1f2937;
         }
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-surface: #ffffff;
-            --bg-card: #f1f5f9;
-            --text-main: #0f172a;
-            --text-muted: #94a3b8;
-            --accent-gradient: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
-            --accent-glow: rgba(239, 68, 68, 0.1);
-            --border-color: #e2e8f0;
-            --chat-user: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            --chat-partner: #e2e8f0;
+            --bg-workspace: #f9fafb;
+            --bg-panel: #ffffff;
+            --bg-element: #f3f4f6;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --brand-glow: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            --glow-shadow: rgba(37, 99, 235, 0.1);
+            --border-line: #e5e7eb;
+            --bubble-me: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            --bubble-them: #e5e7eb;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-        html, body { width: 100%; height: 100dvh; overflow: hidden; background-color: var(--bg-primary); color: var(--text-main); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: '-apple-system', BlinkMacSystemFont, 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100dvh; overflow: hidden; background-color: var(--bg-workspace); color: var(--text-primary); }
         .hidden { display: none !important; }
 
-        /* Dashboard Main Layout Structure */
-        .app-container { width: 100%; height: 100%; display: grid; grid-template-columns: 260px 1fr; overflow: hidden; }
+        /* Master Application Grid Grid layout configuration */
+        .app-shell { width: 100%; height: 100%; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
 
-        /* Left Hand Side Menu Control Drawer */
-        .sidebar { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
-        .brand-logo { font-size: 1.6rem; font-weight: 900; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+        /* Left Side Profile Navigator Control Panel */
+        .sidebar-panel { background: var(--bg-panel); border-right: 1px solid var(--border-line); display: flex; flex-direction: column; justify-content: space-between; padding: 28px; }
+        .app-identity { font-size: 1.6rem; font-weight: 800; background: var(--brand-glow); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; }
 
-        /* Content Core Container View wrappers */
-        .main-workspace { position: relative; height: 100%; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        .workspace-canvas { position: relative; height: 100%; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* VIEW 1: LANDING DASHBOARD VIEW HUB */
-        .dashboard-landing { flex: 1; padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 32px; }
-        .hero-banner h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
+        /* VIEW 1: PREMIUM LANDING HUB DASHBOARD */
+        .hub-landing-view { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 40px; max-width: 1200px; width: 100%; margin: 0 auto; }
+        .hero-title h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
         
-        /* Interactive Option Matching Grid Cards */
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; }
-        .mode-selection-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 32px; cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; gap: 14px; position: relative; }
-        .mode-selection-card:hover { transform: translateY(-4px); border-color: #ff4e50; box-shadow: 0 12px 30px var(--accent-glow); }
-        .mode-selection-card h3 { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 12px; }
-        .badge-icon { width: 44px; height: 44px; background: var(--accent-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.3rem; }
+        .selection-deck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+        .feature-select-card { background: var(--bg-panel); border: 1px solid var(--border-line); border-radius: 24px; padding: 36px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 16px; position: relative; }
+        .feature-select-card:hover { transform: translateY(-4px); border-color: #3b82f6; box-shadow: 0 20px 40px var(--glow-shadow); }
+        .feature-select-card h3 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 14px; }
+        .feature-icon-wrapper { width: 48px; height: 48px; background: var(--brand-glow); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.4rem; }
 
-        /* INTEGRATED LIVE ADVERTISEMENT PLACEMENT BOXES */
-        .ads-dashboard-row { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin-top: auto; padding-top: 20px; }
-        .native-ad-wrapper { background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 16px; padding: 24px; display: flex; align-items: center; justify-content: center; min-height: 130px; text-align: center; position: relative; }
-        .ad-marker-tag { position: absolute; top: 8px; right: 12px; font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* SPONSORED PROMOTIONS BANNER ELEMENTS DESIGNS */
+        .sponsored-advertisement-deck { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: auto; }
+        .premium-ad-frame { background: var(--bg-panel); border: 1px dashed var(--border-line); border-radius: 20px; padding: 28px; display: flex; align-items: center; justify-content: center; min-height: 140px; text-align: center; position: relative; }
+        .sponsored-tag-indicator { position: absolute; top: 10px; right: 16px; font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* VIEW 2: FULLY FUNCTIONAL INTERACTIVE LIVE MATCH ROOM */
-        .room-viewport { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-primary); }
-        .room-navbar { padding: 16px 24px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        /* VIEW 2: ACTIVE ROOM INSTANCE INTERFACE WORKSPACE (Dynamic video split config) */
+        .room-viewport-panel { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-workspace); }
+        .room-navbar-header { padding: 20px 28px; background: var(--bg-panel); border-bottom: 1px solid var(--border-line); display: flex; justify-content: space-between; align-items: center; }
         
-        /* Dual Cam Tracking Split Grid Viewport */
-        .video-deck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; background: #000000; height: 45%; max-height: 360px; min-height: 220px; flex-shrink: 0; }
-        .video-wrapper-card { position: relative; background: #0b0f19; border-radius: 14px; overflow: hidden; border: 1px solid #1e293b; }
-        .video-wrapper-card video { width: 100%; height: 100%; object-fit: cover; }
-        .video-wrapper-card .overlay-label { position: absolute; bottom: 12px; left: 12px; background: rgba(0, 0, 0, 0.65); padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; backdrop-filter: blur(4px); }
+        /* Premium WebRTC dual streaming grid frame block layout */
+        .media-streaming-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 28px; background: var(--bg-workspace); border-bottom: 1px solid var(--border-line); height: 45%; max-height: 380px; min-height: 240px; flex-shrink: 0; }
+        .stream-view-container { position: relative; background: #000000; border-radius: 20px; overflow: hidden; border: 1px solid var(--border-line); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .stream-view-container video { width: 100%; height: 100%; object-fit: cover; }
+        .stream-identity-tag { position: absolute; bottom: 16px; left: 16px; background: rgba(11, 15, 25, 0.75); padding: 6px 14px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); }
 
-        /* Message feed core viewport layout block */
-        .chat-feed-wrapper { flex: 1; display: flex; flex-direction: column; background: var(--bg-surface); overflow: hidden; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg-bubble { max-width: 75%; padding: 12px 16px; border-radius: 16px; font-size: 0.98rem; word-break: break-word; line-height: 1.5; }
-        .msg-bubble.me { background: var(--chat-user); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
-        .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin: 6px 0; background: rgba(0,0,0,0.2); padding: 6px 16px; border-radius: 20px; align-self: center; font-weight: 500; }
+        /* Text area feed layouts engine box code */
+        .communication-feed-wrapper { flex: 1; display: flex; flex-direction: column; background: var(--bg-panel); overflow: hidden; }
+        .chat-messages-container { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .msg-bubble { max-width: 70%; padding: 14px 18px; border-radius: 20px; font-size: 0.98rem; word-break: break-word; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .msg-bubble.me { background: var(--bubble-me); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .msg-bubble.them { background: var(--bubble-them); color: var(--text-primary); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .status-system { text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin: 8px 0; background: var(--bg-element); padding: 8px 20px; border-radius: 30px; align-self: center; font-weight: 600; border: 1px solid var(--border-line); }
 
-        /* Layout-Preserving Chat Bottom Bar Input Field Container Box */
-        .chat-input-bar { padding: 14px 20px; background: var(--bg-surface); border-top: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
-        .input-box-wrapper { flex: 1; display: flex; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 0 16px; align-items: center; }
-        .input-box-wrapper input { flex: 1; padding: 14px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
+        /* Action Input Container Bar block spacing layouts */
+        .action-dock-bar { padding: 18px 28px; background: var(--bg-panel); border-top: 1px solid var(--border-line); display: flex; gap: 14px; align-items: center; padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+        .interactive-input-container { flex: 1; display: flex; background: var(--bg-workspace); border: 1px solid var(--border-line); border-radius: 18px; padding: 0 20px; align-items: center; transition: border-color 0.2s; }
+        .interactive-input-container:focus-within { border-color: #3b82f6; }
+        .interactive-input-container input { flex: 1; padding: 16px 0; background: transparent; border: none; color: var(--text-primary); outline: none; font-size: 1rem; }
 
-        /* Global Reusable Action Button Component Elements */
-        .btn { padding: 14px 24px; background: var(--accent-gradient); color: #000000; color: white; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 4px 12px var(--accent-glow); transition: transform 0.1s; }
-        .btn:active { transform: scale(0.98); }
-        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none; }
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; box-shadow: none; }
+        /* Generic Core Buttons Reusable Architecture classes styles templates */
+        .btn { padding: 16px 28px; background: var(--brand-glow); color: white; border: none; border-radius: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.98rem; transition: all 0.2s; }
+        .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border-line); color: var(--text-primary); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
 
-        /* VIEW 3: SPINNING SEARCH LOADING RADAR SCREEN WALL OVERLAY */
-        .queue-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
-        .radar-node { width: 88px; height: 88px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
-        .radar-node::before { content: ''; position: absolute; inset: -6px; border: 2px solid #ff4e50; border-radius: 50%; animation: radarPulse Loop 1.4s linear infinite; }
+        /* VIEW 3: MATCHMAKING RADAR SYSTEM COVER LOADING DISPLAY OVERLAYS */
+        .radar-search-overlay { position: absolute; inset: 0; background: var(--bg-workspace); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+        .radar-beacon { width: 96px; height: 96px; background: var(--brand-glow); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 28px; position: relative; box-shadow: 0 0 40px var(--glow-shadow); }
+        .radar-beacon::before { content: ''; position: absolute; inset: -8px; border: 2px solid #3b82f6; border-radius: 50%; animation: pingWave 1.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
 
-        /* PORTAL AUTHENTICATION MODAL INITIAL OVERLAY BLOCK */
-        .auth-portal-screen { position: fixed; inset: 0; background: var(--bg-primary); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-        .auth-form-block { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
-        .auth-form-block input { width: 100%; padding: 16px; border-radius: 14px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); outline: none; font-size: 1rem; }
+        /* ACCESS SECURITY AUTH PROTECTION DOOR MODAL CONTAINER LAYOUTS */
+        .access-barrier-panel { position: fixed; inset: 0; background: var(--bg-workspace); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+        .access-card-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; margin-top: 32px; }
+        .access-card-form input { width: 100%; padding: 18px; border-radius: 18px; background: var(--bg-panel); border: 1px solid var(--border-line); color: var(--text-primary); outline: none; font-size: 1rem; transition: border-color 0.2s; }
+        .access-card-form input:focus { border-color: #3b82f6; }
 
-        @keyframes radarPulseLoop { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
+        @keyframes pingWave { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.6); opacity: 0; } }
 
-        /* Device Adaptive Overrides Styles Layout */
-        @media (max-width: 768px) {
-            .app-container { grid-template-columns: 1fr; }
-            .sidebar { display: none !important; }
-            .cards-grid, .ads-dashboard-row { grid-template-columns: 1fr; }
-            .dashboard-landing { padding: 20px; gap: 24px; }
-            .video-deck-grid { height: 35%; }
+        /* Responsive Form Factors Overrides Sizing constraints rules layout templates */
+        @media (max-width: 900px) {
+            .app-shell { grid-template-columns: 1fr; }
+            .sidebar-panel { display: none !important; }
+            .selection-deck-grid, .sponsored-advertisement-deck { grid-template-columns: 1fr; }
+            .hub-landing-view { padding: 24px; gap: 28px; }
+            .media-streaming-grid { height: 35%; padding: 12px 20px; }
+            .room-navbar-header { padding: 16px 20px; }
         }
     </style>
 </head>
 <body>
 
-    <div id="auth-view" class="auth-portal-screen">
-        <div class="brand-logo" style="font-size: 2.4rem;">Omegle Fun</div>
-        <p style="color: var(--text-muted); margin-top: 6px; text-align:center;">Instant face-to-face chat dashboard sandbox rooms.</p>
+    <div id="auth-view" class="access-barrier-panel">
+        <div class="app-identity" style="font-size: 2.8rem;">Nexus</div>
+        <p style="color: var(--text-secondary); margin-top: 6px; font-size: 1.05rem;">Enter the live peer-to-peer connection workspace dashboard.</p>
         
-        <form id="login-form" class="auth-form-block" onsubmit="return false;">
-            <input type="text" id="username" placeholder="Username (Leave blank for Anonymous Guest)..." autocomplete="username">
-            <input type="password" id="password" placeholder="Password (Optional credential block)..." autocomplete="current-password">
-            
-            <button type="submit" class="btn" id="btn-login" style="justify-content: center; background: var(--accent-gradient);">⚡ Enter Chat Dashboard</button>
-            <button type="button" class="btn btn-secondary" id="btn-register" style="justify-content: center;">Secure Custom Profile Account</button>
+        <form id="login-form" class="access-card-form" onsubmit="return false;">
+            <input type="text" id="username" placeholder="Enter dashboard handle (or leave blank)..." autocomplete="username">
+            <button type="submit" class="btn" id="btn-login" style="justify-content: center;">⚡ Request Node Allocation</button>
         </form>
-        <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:12px;" class="hidden"></p>
     </div>
 
-    <div class="app-container">
+    <div class="app-shell">
         
-        <div class="sidebar">
+        <div class="sidebar-panel">
             <div>
-                <div class="brand-logo">Omegle Fun</div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; font-weight: 500;">P2P Communications Framework</p>
+                <div class="app-identity">Nexus Platform</div>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">Distributed System Node</p>
             </div>
-            <div style="background: var(--bg-primary); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color);">
-                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; display:block; letter-spacing:0.5px; text-transform: uppercase;">Active Identity</span>
-                <h4 id="user-display-node" style="margin-top: 2px; overflow:hidden; text-overflow:ellipsis; font-weight:700;">Guest Account</h4>
+            <div style="background: var(--bg-element); padding: 18px; border-radius: 18px; border: 1px solid var(--border-line);">
+                <span style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 700; display:block; letter-spacing:0.5px; text-transform: uppercase;">Active Node Handle</span>
+                <h4 id="user-display-label" style="margin-top: 4px; overflow:hidden; text-overflow:ellipsis; font-weight:700;">Local Unit</h4>
             </div>
-            <button class="btn btn-secondary" id="theme-toggle-btn" style="width: 100%;">🌓 Switch Theme Mode</button>
+            <button class="btn btn-secondary" id="theme-toggle-btn" style="width: 100%;">🌓 Shift Theme Engine</button>
         </div>
 
-        <div class="main-workspace">
+        <div class="workspace-canvas">
             
-            <div id="view-dashboard" class="dashboard-landing">
-                <div class="hero-banner">
-                    <h1>Welcome to the Hub</h1>
-                    <p style="color: var(--text-muted); margin-top: 2px;">Connect with random online users instantly using our text matching rooms or high-fidelity WebRTC streaming networks.</p>
+            <div id="view-dashboard" class="hub-landing-view">
+                <div class="hero-title">
+                    <h1>Connection Terminal</h1>
+                    <p style="color: var(--text-secondary); margin-top: 4px; font-size: 1.05rem;">Allocate your connection pool parameters to immediately synchronize with active online channels.</p>
                 </div>
 
-                <div class="cards-grid">
-                    <div class="mode-selection-card" id="card-mode-text">
-                        <div class="badge-icon">💬</div>
-                        <h3>Match Text Room</h3>
-                        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.4;">Instant random text-only chats. Ideal for low-latency network connections, remaining completely anonymous.</p>
+                <div class="selection-deck-grid">
+                    <div class="feature-select-card" id="card-mode-text">
+                        <div class="feature-icon-wrapper">💬</div>
+                        <h3>Launch Text Pipeline</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5;">Establish low-overhead text matrix pipelines. Safe, fast-matching synchronization without tracking data overheads.</p>
                     </div>
 
-                    <div class="mode-selection-card" id="card-mode-video">
-                        <div class="badge-icon">🎥</div>
-                        <h3>Match Cam Video</h3>
-                        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.4;">High-definition live video feeds paired directly alongside real-time chat modules. Requires active hardware permission checks.</p>
+                    <div class="feature-select-card" id="card-mode-video">
+                        <div class="feature-icon-wrapper">🎥</div>
+                        <h3>Launch Video Pipeline</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5;">Deploys bidirectional P2P hardware camera rendering tracks and inline messaging feeds simultaneously. Requires hardware stream handshakes.</p>
                     </div>
                 </div>
 
-                <div class="ads-dashboard-row">
-                    <div class="native-ad-wrapper">
-                        <span class="ad-marker-tag">Sponsor Slot Alpha</span>
-                        <div style="color: var(--text-muted); font-size:0.85rem; line-height: 1.4;">📈 <strong>Promote Your Discord/Minecraft Server Here!</strong><br>Monetize active chatter loops by injecting ad-server banners directly into these structural placeholder panels.</div>
+                <div class="sponsored-advertisement-deck">
+                    <div class="premium-ad-frame">
+                        <span class="sponsored-tag-indicator">Advertisement Console Alpha</span>
+                        <div style="color: var(--text-secondary); font-size:0.9rem; line-height: 1.5;">🎯 <strong>Promote Marketplace & Discord Portals Here</strong><br>Monetize user retention layouts cleanly by loading direct contextual display ads blocks right over dashboard panes.</div>
                     </div>
-                    <div class="native-ad-wrapper">
-                        <span class="ad-marker-tag">Sponsor Slot Beta</span>
-                        <div style="color: var(--text-muted); font-size:0.85rem; line-height: 1.4;">🎯 <strong>Targeted Custom Ad Blocks Space</strong><br>Deliver impressions directly onto live responsive dashboards. Replace these with custom graphics or script trackers seamlessly.</div>
+                    <div class="premium-ad-frame">
+                        <span class="sponsored-tag-indicator">Advertisement Console Beta</span>
+                        <div style="color: var(--text-secondary); font-size:0.9rem; line-height: 1.5;">⚡ <strong>Sponsorship Slots Available</strong><br>Deliver impressions cleanly across premium application environments. Fill these with tracking script anchors or visuals seamlessly.</div>
                     </div>
                 </div>
             </div>
 
-            <div id="view-room" class="room-viewport hidden">
-                <div class="room-navbar">
+            <div id="view-room" class="room-viewport-panel hidden">
+                <div class="room-navbar-header">
                     <div>
-                        <h4 id="partner-title-node">Connecting Peer...</h4>
-                        <p style="font-size:0.75rem; color:var(--text-muted);" id="partner-subtitle-node">Live encrypted workspace sync</p>
+                        <h4 id="partner-title-node" style="font-weight: 700;">Initializing Stream Node...</h4>
+                        <p style="font-size:0.8rem; color:var(--text-secondary);" id="partner-subtitle-node">Active matrix bridge online</p>
                     </div>
-                    <button class="btn btn-danger" id="room-disconnect-btn" style="padding:10px 18px; font-size:0.85rem;">Disconnect Hub</button>
+                    <button class="btn btn-danger" id="room-disconnect-btn" style="padding:12px 20px; font-size:0.9rem; border-radius:14px;">Release Node</button>
                 </div>
 
-                <div class="video-deck-grid hidden" id="room-video-viewport-grid">
-                    <div class="video-wrapper-card">
+                <div class="media-streaming-grid hidden" id="room-video-viewport-grid">
+                    <div class="stream-view-container">
                         <video id="local-video-track" autoplay playsinline muted></video>
-                        <div class="overlay-label">My Capture Cam</div>
+                        <div class="stream-identity-tag">My Node Stream</div>
                     </div>
-                    <div class="video-wrapper-card">
+                    <div class="stream-view-container">
                         <video id="remote-video-track" autoplay playsinline></video>
-                        <div class="overlay-label" id="partner-video-stream-label">Stranger Remote Stream</div>
+                        <div class="stream-identity-tag" id="partner-video-stream-label">Peer Node Stream</div>
                     </div>
                 </div>
 
-                <div class="chat-feed-wrapper">
-                    <div class="chat-messages" id="chat-stream-box"></div>
+                <div class="communication-feed-wrapper">
+                    <div class="chat-messages-container" id="chat-stream-box"></div>
                     
-                    <div class="chat-input-bar">
-                        <button class="btn btn-danger" id="action-skip-btn">⏩ Skip User</button>
-                        <div class="input-box-wrapper">
-                            <input type="text" id="msg-input" placeholder="Type a message to stranger..." disabled>
+                    <div class="action-dock-bar">
+                        <button class="btn btn-danger" id="action-skip-btn" style="border-radius:14px;">⏩ Next Node</button>
+                        <div class="interactive-input-container">
+                            <input type="text" id="msg-input" placeholder="Transmit data packet to peer node..." disabled>
                         </div>
-                        <button class="btn" id="action-send-btn" style="background: var(--accent-gradient); color:#000;" disabled>Send</button>
+                        <button class="btn" id="action-send-btn" style="border-radius:14px;">Send</button>
                     </div>
                 </div>
             </div>
 
-            <div id="view-queue" class="queue-overlay hidden">
-                <div class="radar-node">
-                    <svg width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <div id="view-queue" class="radar-search-overlay hidden">
+                <div class="radar-beacon">
+                    <svg width="28" height="28" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
-                <h3 style="font-size: 1.5rem; font-weight:800; margin-bottom:6px;" id="queue-status-title-node">Filtering Global Connections...</h3>
-                <p style="color: var(--text-muted); font-size:0.92rem; margin-bottom:24px;">Locating an online match. Please hold on.</p>
-                <button class="btn btn-danger" id="queue-cancel-btn">Abort Connection Search</button>
+                <h3 style="font-size: 1.6rem; font-weight:800; margin-bottom:6px;" id="queue-status-title-node">Allocating Shared Pool Connection Handles...</h3>
+                <p style="color: var(--text-secondary); font-size:0.98rem; margin-bottom:28px;">Scanning routing fabrics to match active distributed terminals.</p>
+                <button class="btn btn-danger" id="queue-cancel-btn">Abort Allocation Request</button>
             </div>
 
         </div>
@@ -223,24 +221,19 @@
 
     <script>
         const socket = io(window.location.origin);
-        let currentThemeState = 'dark';
-        let userProfileAlias = '';
-        let chosenMatchMode = null; // 'text' or 'video'
-        let coreState = 'idle'; // idle, queuing, matched
+        let themeState = 'dark';
+        let nodeHandleName = '';
+        let pipelineMode = null; // 'text' or 'video'
         
-        let localHardwareStream = null;
-        let rtcPeerConnectionNode = null;
-        const publicStunGateway = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        let localCameraStreamTrack = null;
+        let rtcConnectionInstance = null;
+        const fallbackStunConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         const DOM = {
             authView: document.getElementById('auth-view'),
             loginForm: document.getElementById('login-form'),
             username: document.getElementById('username'),
-            password: document.getElementById('password'),
-            loginBtn: document.getElementById('btn-login'),
-            registerBtn: document.getElementById('btn-register'),
-            authError: document.getElementById('auth-error'),
-            userDisplayNode: document.getElementById('user-display-node'),
+            userDisplayLabel: document.getElementById('user-display-label'),
             
             viewDashboard: document.getElementById('view-dashboard'),
             viewRoom: document.getElementById('view-room'),
@@ -255,7 +248,7 @@
             roomVideoViewportGrid: document.getElementById('room-video-viewport-grid'),
             localVideoTrack: document.getElementById('local-video-track'),
             remoteVideoTrack: document.getElementById('remote-video-track'),
-            partnerVideoStreamLabel: document.getElementById('partner-video-stream-label'),
+            partnerVideoLabel: document.getElementById('partner-video-stream-label'),
             
             partnerTitleNode: document.getElementById('partner-title-node'),
             partnerSubtitleNode: document.getElementById('partner-subtitle-node'),
@@ -266,84 +259,77 @@
             themeBtn: document.getElementById('theme-toggle-btn')
         };
 
-        // Layout Dark/Light Theme Switching logic
+        // Dark/Light layout shifting manager toggles
         DOM.themeBtn.addEventListener('click', () => {
-            currentThemeState = currentThemeState === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', currentThemeState);
+            themeState = themeState === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', themeState);
         });
 
-        // Authentication Submission pipeline processing
-        DOM.loginForm.addEventListener('submit', (e) => { e.preventDefault(); executeAuthRequest(false); });
-        DOM.registerBtn.addEventListener('click', () => executeAuthRequest(true));
-
-        function executeAuthRequest(isRegistering) {
-            const u = DOM.username.value.trim();
-            const p = DOM.password.value;
-            // Send empty data values seamlessly to auto-trigger the Guest provision system architecture loop
-            socket.emit('auth', { username: u, password: p, isRegistering });
-        }
+        // Intercept account credentials and pass securely down pipeline loops
+        DOM.loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const value = DOM.username.value.trim();
+            socket.emit('auth', { username: value });
+        });
 
         socket.on('auth-response', (res) => {
             if (res.success) {
-                userProfileAlias = res.username;
-                DOM.userDisplayNode.innerText = userProfileAlias;
+                nodeHandleName = res.username;
+                DOM.userDisplayLabel.innerText = nodeHandleName;
                 DOM.authView.classList.add('hidden');
-            } else {
-                DOM.authError.innerText = res.message;
-                DOM.authError.classList.remove('hidden');
             }
         });
 
-        // Dashboard Route Pipeline Navigation triggers
-        DOM.cardTextMode.addEventListener('click', () => runMatchmakingProcess('text'));
-        DOM.cardVideoMode.addEventListener('click', () => runMatchmakingProcess('video'));
+        // Operational Execution routing hooks loops triggers
+        DOM.cardTextMode.addEventListener('click', () => initiateMatchingSequence('text'));
+        DOM.cardVideoMode.addEventListener('click', () => initiateMatchingSequence('video'));
         
-        DOM.queueCancelBtn.addEventListener('click', () => { socket.emit('skip-match'); routeBackToDashboardHub(); });
-        DOM.roomDisconnectBtn.addEventListener('click', () => { socket.emit('skip-match'); routeBackToDashboardHub(); });
-        DOM.skipBtn.addEventListener('click', () => { socket.emit('skip-match'); runMatchmakingProcess(chosenMatchMode); });
+        DOM.queueCancelBtn.addEventListener('click', () => { socket.emit('skip-match'); routeToDashboardHubView(); });
+        DOM.roomDisconnectBtn.addEventListener('click', () => { socket.emit('skip-match'); routeToDashboardHubView(); });
+        DOM.skipBtn.addEventListener('click', () => { socket.emit('skip-match'); initiateMatchingSequence(pipelineMode); });
 
-        async function runMatchmakingProcess(mode) {
-            chosenMatchMode = mode;
-            coreState = 'queuing';
+        async function initiateMatchingSequence(mode) {
+            pipelineMode = mode;
             
             DOM.viewDashboard.classList.add('hidden');
             DOM.viewRoom.classList.add('hidden');
             DOM.viewQueue.classList.remove('hidden');
+            document.getElementById('queue-status-title-node').innerText = `Allocating ${mode.toUpperCase()} Pipeline...`;
 
-            // Access hardware capture nodes instantly only when initiating video tracks channels
-            if(mode === 'video' && !localHardwareStream) {
+            // CRITICAL FIX: Initialize hardware device tracks BEFORE signaling queue to prevent connection freezes
+            if(mode === 'video' && !localCameraStreamTrack) {
                 try {
-                    localHardwareStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    DOM.localVideoTrack.srcObject = localHardwareStream;
+                    localCameraStreamTrack = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    DOM.localVideoTrack.srcObject = localCameraStreamTrack;
                 } catch (err) {
-                    console.error("Hardware tracking authorization failed:", err);
-                    appendSystemMessage("⚠️ Video authorization denied or unavailable. Connecting over text only.");
+                    console.error("Hardware streaming authorization fault:", err);
+                    appendSystemMessage("⚠️ Video device verification failed. Defaulting connection to text arrays mapping channels.");
+                    pipelineMode = 'text'; // Graceful downgrade logic to prevent queue freeze
                 }
             }
-            socket.emit('find-match', { mode });
+            socket.emit('find-match', { mode: pipelineMode });
         }
 
         socket.on('waiting', () => {
-            document.getElementById('queue-status-title-node').innerText = `Searching ${chosenMatchMode.toUpperCase()} Channels...`;
+            document.getElementById('queue-status-title-node').innerText = `Scanning routing layers for active ${pipelineMode.toUpperCase()} nodes...`;
         });
 
         socket.on('match-found', (data) => {
-            coreState = 'matched';
             DOM.viewQueue.classList.add('hidden');
             DOM.viewRoom.classList.remove('hidden');
             
             DOM.msgInput.removeAttribute('disabled');
             DOM.sendBtn.removeAttribute('disabled');
             DOM.partnerTitleNode.innerText = data.partnerName;
-            DOM.partnerSubtitleNode.innerText = `Anonymously paired in ${data.mode} sandbox channel`;
+            DOM.partnerSubtitleNode.innerText = `Active tunnel connection linked over ${data.mode} fabrics`;
             DOM.chatStreamBox.innerHTML = '';
             
-            appendSystemMessage(`Connected with stranger **${data.partnerName}**. Say hi!`);
+            appendSystemMessage(`Bridge opened with peer terminal: **${data.partnerName}**.`);
 
             if (data.mode === 'video') {
                 DOM.roomVideoViewportGrid.classList.remove('hidden');
-                DOM.partnerVideoStreamLabel.innerText = `${data.partnerName}'s Camera`;
-                if(localHardwareStream) buildWebRTCConnectionLayer(data.initiateCall);
+                DOM.partnerVideoLabel.innerText = `${data.partnerName}'s Capture Stream`;
+                if(localCameraStreamTrack) initializeWebRTCHandshakeBroker(data.initiateCall);
             } else {
                 DOM.roomVideoViewportGrid.classList.add('hidden');
             }
@@ -351,18 +337,17 @@
         });
 
         socket.on('partner-disconnected', () => {
-            appendSystemMessage("❌ Stranger has skipped or disconnected from this room.");
-            terminatePeerConnectionTracks();
+            appendSystemMessage("❌ Peer connection terminal closed the bridge.");
+            destroyActiveWebRTCLinks();
             DOM.msgInput.setAttribute('disabled', 'true');
             DOM.sendBtn.setAttribute('disabled', 'true');
         });
 
-        function routeBackToDashboardHub() {
-            coreState = 'idle';
-            terminatePeerConnectionTracks();
-            if(localHardwareStream) {
-                localHardwareStream.getTracks().forEach(t => t.stop());
-                localHardwareStream = null;
+        function routeToDashboardHubView() {
+            destroyActiveWebRTCLinks();
+            if(localCameraStreamTrack) {
+                localCameraStreamTrack.getTracks().forEach(track => track.stop());
+                localCameraStreamTrack = null;
                 DOM.localVideoTrack.srcObject = null;
             }
             DOM.viewRoom.classList.add('hidden');
@@ -370,86 +355,86 @@
             DOM.viewDashboard.classList.remove('hidden');
         }
 
-        // WebRTC peer connections orchestration pipelines loops logic
-        function buildWebRTCConnectionLayer(isCallInitiator) {
-            terminatePeerConnectionTracks();
-            rtcPeerConnectionNode = new RTCPeerConnection(publicStunGateway);
+        // WebRTC P2P streaming link architecture configurations broker
+        function initializeWebRTCHandshakeBroker(isCaller) {
+            destroyActiveWebRTCLinks();
+            rtcConnectionInstance = new RTCPeerConnection(fallbackStunConfig);
             
-            if(localHardwareStream) {
-                localHardwareStream.getTracks().forEach(track => rtcPeerConnectionNode.addTrack(track, localHardwareStream));
+            if(localCameraStreamTrack) {
+                localCameraStreamTrack.getTracks().forEach(track => rtcConnectionInstance.addTrack(track, localCameraStreamTrack));
             }
 
-            rtcPeerConnectionNode.ontrack = (e) => { 
-                if (DOM.remoteVideoTrack.srcObject !== e.streams[0]) {
-                    DOM.remoteVideoTrack.srcObject = e.streams[0]; 
+            rtcConnectionInstance.ontrack = (event) => { 
+                if (DOM.remoteVideoTrack.srcObject !== event.streams[0]) {
+                    DOM.remoteVideoTrack.srcObject = event.streams[0]; 
                 }
             };
             
-            rtcPeerConnectionNode.onicecandidate = (e) => { 
-                if(e.candidate) socket.emit('webrtc-signal', { candidate: e.candidate }); 
+            rtcConnectionInstance.onicecandidate = (event) => { 
+                if(event.candidate) socket.emit('webrtc-signal', { candidate: event.candidate }); 
             };
 
-            if (isCallInitiator) {
-                rtcPeerConnectionNode.onnegotiationneeded = async () => {
+            if (isCaller) {
+                rtcConnectionInstance.onnegotiationneeded = async () => {
                     try {
-                        const baseOffer = await rtcPeerConnectionNode.createOffer();
-                        await rtcPeerConnectionNode.setLocalDescription(baseOffer);
-                        socket.emit('webrtc-signal', { sdp: rtcPeerConnectionNode.localDescription });
-                    } catch (err) { console.error("WebRTC Negotiation offer dispatch error:", err); }
+                        const rawOffer = await rtcConnectionInstance.createOffer();
+                        await rtcConnectionInstance.setLocalDescription(rawOffer);
+                        socket.emit('webrtc-signal', { sdp: rtcConnectionInstance.localDescription });
+                    } catch (err) { console.error("Handshake negotiation offer failure:", err); }
                 };
             }
         }
 
         socket.on('webrtc-signal', async (data) => {
-            if (!rtcPeerConnectionNode) return;
+            if (!rtcConnectionInstance) return;
             try {
                 if (data.sdp) {
-                    await rtcPeerConnectionNode.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    if (rtcPeerConnectionNode.remoteDescription.type === 'offer') {
-                        const implicitAnswer = await rtcPeerConnectionNode.createAnswer();
-                        await rtcPeerConnectionNode.setLocalDescription(implicitAnswer);
-                        socket.emit('webrtc-signal', { sdp: rtcPeerConnectionNode.localDescription });
+                    await rtcConnectionInstance.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    if (rtcConnectionInstance.remoteDescription.type === 'offer') {
+                        const generatedAnswer = await rtcConnectionInstance.createAnswer();
+                        await rtcConnectionInstance.setLocalDescription(generatedAnswer);
+                        socket.emit('webrtc-signal', { sdp: rtcConnectionInstance.localDescription });
                     }
                 } else if (data.candidate) {
-                    await rtcPeerConnectionNode.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    await rtcConnectionInstance.addIceCandidate(new RTCIceCandidate(data.candidate));
                 }
-            } catch (err) { console.error("Signaling application tracking fault:", err); }
+            } catch (err) { console.error("Signal orchestration tracking exception code error:", err); }
         });
 
-        function terminatePeerConnectionTracks() {
-            if(rtcPeerConnectionNode) { 
-                rtcPeerConnectionNode.close(); 
-                rtcPeerConnectionNode = null; 
+        function destroyActiveWebRTCLinks() {
+            if(rtcConnectionInstance) { 
+                rtcConnectionInstance.close(); 
+                rtcConnectionInstance = null; 
             }
             DOM.remoteVideoTrack.srcObject = null;
         }
 
-        // Text Message Transmission dispatch logic
-        DOM.sendBtn.addEventListener('click', processOutgoingMessage);
-        DOM.msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') processOutgoingMessage(); });
+        // Text Message data packing dispatch handlers execution loops
+        DOM.sendBtn.addEventListener('click', forwardChatMessagePacket);
+        DOM.msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') forwardChatMessagePacket(); });
 
-        function processOutgoingMessage() {
-            const currentStringValue = DOM.msgInput.value.trim();
-            if(!currentStringValue) return;
-            socket.emit('send-message', currentStringValue);
-            appendMessageNode(currentStringValue, 'me');
+        function forwardChatMessagePacket() {
+            const explicitString = DOM.msgInput.value.trim();
+            if(!explicitString) return;
+            socket.emit('send-message', explicitString);
+            appendChatMessageNode(explicitString, 'me');
             DOM.msgInput.value = '';
         }
-        socket.on('receive-message', (msg) => appendMessageNode(msg, 'them'));
+        socket.on('receive-message', (msg) => appendChatMessageNode(msg, 'them'));
 
-        function appendMessageNode(text, teamVariant) {
-            const dynamicMessageBubble = document.createElement('div'); 
-            dynamicMessageBubble.className = `msg-bubble ${teamVariant}`; 
-            dynamicMessageBubble.innerText = text;
-            DOM.chatStreamBox.appendChild(dynamicMessageBubble); 
+        function appendChatMessageNode(text, scopeVariant) {
+            const visualBubbleNode = document.createElement('div'); 
+            visualBubbleNode.className = `msg-bubble ${scopeVariant}`; 
+            visualBubbleNode.innerText = text;
+            DOM.chatStreamBox.appendChild(visualBubbleNode); 
             DOM.chatStreamBox.scrollTop = DOM.chatStreamBox.scrollHeight;
         }
         
         function appendSystemMessage(text) {
-            const dynamicSystemBubble = document.createElement('div'); 
-            dynamicSystemBubble.className = 'status-system'; 
-            dynamicSystemBubble.innerText = text;
-            DOM.chatStreamBox.appendChild(dynamicSystemBubble); 
+            const systemLogBubbleNode = document.createElement('div'); 
+            systemLogBubbleNode.className = 'status-system'; 
+            systemLogBubbleNode.innerText = text;
+            DOM.chatStreamBox.appendChild(systemLogBubbleNode); 
             DOM.chatStreamBox.scrollTop = DOM.chatStreamBox.scrollHeight;
         }
     </script>
