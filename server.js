@@ -5,21 +5,21 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+const io = new Server(server, { 
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    pingTimeout: 60000 
+});
 
 const PORT = process.env.PORT || 3000;
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Active tracking maps
-const registeredUsers = new Map();
-const activeUsers = new Map();
-
+const activeConnections = new Map();
 let textQueue = [];
 let videoQueue = [];
 
-async function logToDiscord(title, description, color = 3447003) {
+async function logToDiscord(title, description, color = 6584234) {
     if (!DISCORD_WEBHOOK_URL) return;
     try {
         await fetch(DISCORD_WEBHOOK_URL, {
@@ -28,69 +28,56 @@ async function logToDiscord(title, description, color = 3447003) {
             body: JSON.stringify({ embeds: [{ title, description, color, timestamp: new Date().toISOString() }] })
         });
     } catch (err) {
-        console.error('Discord Webhook Logger Error:', err.message);
+        console.error('Discord Hook Error:', err.message);
     }
 }
 
 io.on('connection', (socket) => {
     
-    // Casual immediate login: supports both manual accounts or automated guest bypass
-    socket.on('auth', ({ username, password, isRegistering }) => {
-        let finalUsername = username ? username.trim() : "";
-        
-        if (!finalUsername) {
-            // Generate immediate random guest profiles like Omegle.fun
-            finalUsername = `Stranger_${Math.floor(1000 + Math.random() * 9000)}`;
+    socket.on('auth', ({ username }) => {
+        let finalName = username ? username.trim() : "";
+        if (!finalName) {
+            finalName = `User_${Math.floor(1000 + Math.random() * 9000)}`;
         }
 
-        if (username && password) {
-            if (isRegistering) {
-                if (registeredUsers.has(finalUsername)) {
-                    return socket.emit('auth-response', { success: false, message: 'Username taken.' });
-                }
-                registeredUsers.set(finalUsername, password);
-                logToDiscord('👤 Registered User Member', `**Alias:** \`${finalUsername}\``, 3066993);
-            } else {
-                if (registeredUsers.has(finalUsername) && registeredUsers.get(finalUsername) !== password) {
-                    return socket.emit('auth-response', { success: false, message: 'Invalid credentials.' });
-                }
-                if (!registeredUsers.has(finalUsername)) {
-                    registeredUsers.set(finalUsername, password);
-                }
-            }
-        }
+        activeConnections.set(socket.id, { 
+            id: socket.id, 
+            username: finalName, 
+            partnerId: null, 
+            mode: null 
+        });
 
-        activeUsers.set(socket.id, { username: finalUsername, partnerId: null, currentMode: null });
-        socket.emit('auth-response', { success: true, username: finalUsername });
-        logToDiscord('🟢 Session Activated', `**User:** \`${finalUsername}\` (\`${socket.id}\`)`, 3447003);
+        socket.emit('auth-response', { success: true, username: finalName });
+        logToDiscord('🛡️ Nexus Node Assigned', `**User:** \`${finalName}\` \n**Socket ID:** \`${socket.id}\``, 5793266);
     });
 
     socket.on('find-match', ({ mode }) => {
-        const user = activeUsers.get(socket.id);
+        const user = activeConnections.get(socket.id);
         if (!user || user.partnerId) return;
 
-        user.currentMode = mode; // 'text' or 'video'
-        let targetQueue = (mode === 'video') ? videoQueue : textQueue;
-
-        // Clear any lingering instances of this socket from both queues
+        user.mode = mode;
+        
+        // Clean old references
         textQueue = textQueue.filter(id => id !== socket.id);
         videoQueue = videoQueue.filter(id => id !== socket.id);
 
+        let targetQueue = (mode === 'video') ? videoQueue : textQueue;
+
         if (targetQueue.length > 0) {
             const partnerId = targetQueue.shift();
-            const partner = activeUsers.get(partnerId);
+            const partner = activeConnections.get(partnerId);
 
             if (partner && partnerId !== socket.id) {
                 user.partnerId = partnerId;
                 partner.partnerId = socket.id;
 
-                // Establish bidirectional pairing data
                 socket.emit('match-found', { partnerName: partner.username, mode: mode, initiateCall: true });
                 io.to(partnerId).emit('match-found', { partnerName: user.username, mode: mode, initiateCall: false });
                 
-                logToDiscord('⚡ Match Connected', `\`${user.username}\` paired with \`${partner.username}\` [${mode.toUpperCase()}]`, 15105570);
+                logToDiscord('⚡ Bridge Established', `🔄 Connected: \`${user.username}\` 🤝 \`${partner.username}\` \n**Profile Mode:** \`${mode.toUpperCase()}\``, 16750848);
             } else {
                 targetQueue.push(socket.id);
+                socket.emit('waiting');
             }
         } else {
             targetQueue.push(socket.id);
@@ -98,42 +85,45 @@ io.on('connection', (socket) => {
         }
     });
 
-    // High-performance WebRTC negotiation signaling passthrough
     socket.on('webrtc-signal', (data) => {
-        const user = activeUsers.get(socket.id);
+        const user = activeConnections.get(socket.id);
         if (user && user.partnerId) {
             io.to(user.partnerId).emit('webrtc-signal', data);
         }
     });
 
     socket.on('send-message', (message) => {
-        const user = activeUsers.get(socket.id);
+        const user = activeConnections.get(socket.id);
         if (user && user.partnerId) {
             io.to(user.partnerId).emit('receive-message', message);
         }
     });
 
-    socket.on('skip-match', () => { handleDisconnections(socket, 'skipped'); });
-    socket.on('disconnect', () => { handleDisconnections(socket, 'disconnected'); });
+    socket.on('skip-match', () => { handlePurge(socket, 'skipped'); });
+    socket.on('disconnect', () => { handlePurge(socket, 'disconnected'); });
 });
 
-function handleDisconnections(socket, action) {
-    const user = activeUsers.get(socket.id);
+function handlePurge(socket, eventType) {
+    const user = activeConnections.get(socket.id);
     textQueue = textQueue.filter(id => id !== socket.id);
     videoQueue = videoQueue.filter(id => id !== socket.id);
 
     if (user) {
         if (user.partnerId) {
             const partnerId = user.partnerId;
-            const partner = activeUsers.get(partnerId);
+            const partner = activeConnections.get(partnerId);
             if (partner) {
                 partner.partnerId = null;
+                partner.mode = null;
                 io.to(partnerId).emit('partner-disconnected');
             }
             user.partnerId = null;
         }
-        if (action === 'disconnected') activeUsers.delete(socket.id);
+        if (eventType === 'disconnected') {
+            logToDiscord('❌ Nexus Node Released', `**User Left:** \`${user.username}\``, 15548997);
+            activeConnections.delete(socket.id);
+        }
     }
 }
 
-server.listen(PORT, () => console.log(`Omegle Core Engine running smoothly on port ${PORT}`));
+server.listen(PORT, () => console.log(`Nexus Engine compiled safely on port ${PORT}`));
