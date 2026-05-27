@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AnonChat Pro v2.1</title>
+    <title>AnonChat Pro v2.2</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root[data-theme="dark"] {
@@ -38,7 +38,7 @@
         
         html, body {
             width: 100%;
-            height: 100%;
+            height: 100dvh; /* Enforces strict dynamic viewport height tracking */
             overflow: hidden;
             background-color: var(--bg-primary);
         }
@@ -52,7 +52,7 @@
         
         .hidden { display: none !important; }
         
-        /* Layout Structure - Built to handle dynamic sizing updates safely */
+        /* Layout Structure */
         .app-container { 
             width: 100%; height: 100%; background: var(--bg-surface); 
             display: grid; grid-template-columns: 320px 1fr; overflow: hidden; 
@@ -94,12 +94,17 @@
         }
         .input-group input:focus { border-color: #6366f1; }
 
-        /* Chat Layout Area - Fixed Flex setup prevents vertical cutting bugs completely */
-        .chat-area { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); width: 100%; position: relative; overflow: hidden; }
+        /* Chat Layout Area - Strict overflow controls prevent cutting */
+        .chat-area { 
+            display: flex; flex-direction: column; 
+            height: 100dvh; background: var(--bg-primary); 
+            width: 100%; position: relative; overflow: hidden; 
+        }
         .chat-header { 
-            padding: 18px 24px; background: var(--bg-surface);
+            padding: 14px 20px; background: var(--bg-surface);
             border-bottom: 1px solid var(--border-color); display: flex; 
             justify-content: space-between; align-items: center; z-index: 5;
+            flex-shrink: 0;
         }
         .partner-info h4 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; }
@@ -107,7 +112,7 @@
         .chat-window-box { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         
         .chat-messages { 
-            flex: 1; padding: 24px; overflow-y: auto; 
+            flex: 1; padding: 20px; overflow-y: auto; 
             display: flex; flex-direction: column; gap: 14px;
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
@@ -121,13 +126,20 @@
         .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 4px; }
         .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; margin: 12px 0; background: rgba(0,0,0,0.1); padding: 6px 14px; border-radius: 20px; align-self: center; }
 
-        /* Dynamic Input Wrapper Layout */
-        .chat-input-wrapper { background: var(--bg-surface); border-top: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+        /* Dynamic Input Wrapper Layout - Optimized for Mobile Screen Constraints */
+        .chat-input-wrapper { 
+            background: var(--bg-surface); 
+            border-top: 1px solid var(--border-color); 
+            padding: 12px 16px; 
+            display: flex; flex-direction: column; gap: 10px; 
+            flex-shrink: 0;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom)); 
+        }
         .chat-input-bar { display: flex; gap: 10px; align-items: center; width: 100%; }
         
-        .input-field-container { flex: 1; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 2px 8px 2px 16px; transition: border-color 0.2s; }
+        .input-field-container { flex: 1; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 2px 8px 2px 14px; transition: border-color 0.2s; }
         .input-field-container:focus-within { border-color: #6366f1; }
-        .input-field-container input { flex: 1; padding: 14px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
+        .input-field-container input { flex: 1; padding: 12px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
         
         .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px; cursor: pointer; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
         
@@ -137,9 +149,9 @@
         .theme-toggle { cursor: pointer; padding: 10px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; font-weight: 600; }
 
         /* Match Deck Search Display Overlay */
-        .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
+        .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .lobby-card { max-width: 420px; width: 100%; }
-        .radar-pulse { width: 96px; height: 96px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
+        .radar-pulse { width: 84px; height: 84px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
         .radar-pulse::before { content: ''; position: absolute; inset: -4px; border: 2px solid #a855f7; border-radius: 50%; animation: pulseRing 1.5s linear infinite; opacity: 0; }
 
         @keyframes pulseRing {
@@ -155,6 +167,7 @@
         @media (max-width: 768px) {
             .app-container { grid-template-columns: 1fr; }
             .sidebar { display: none !important; }
+            .chat-area { height: 100%; }
             .msg-bubble { max-width: 85%; }
             .mobile-header-btn { display: flex !important; }
         }
@@ -225,7 +238,7 @@
                 </div>
                 
                 <div class="chat-input-bar">
-                    <button class="btn btn-danger" id="inline-skip-btn" style="width: auto; padding: 14px 18px; border-radius: 14px;" title="Skip Stranger">
+                    <button class="btn btn-danger" id="inline-skip-btn" style="width: auto; padding: 12px 16px; border-radius: 14px;" title="Skip Stranger">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     </button>
                     
@@ -234,7 +247,7 @@
                         <input type="text" id="msg-input" placeholder="Type a message..." disabled>
                     </div>
                     
-                    <button class="btn" id="btn-send" style="width: auto; padding: 14px 20px;" disabled>
+                    <button class="btn" id="btn-send" style="width: auto; padding: 12px 16px;" disabled>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                     </button>
                 </div>
@@ -281,7 +294,6 @@
         document.getElementById('desktop-theme-btn').addEventListener('click', toggleTheme);
         document.getElementById('mobile-theme-btn').addEventListener('click', toggleTheme);
 
-        // Native Form submissions intercept to trigger password save prompts
         DOM.loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             dispatchAuth(false);
@@ -303,7 +315,7 @@
                 DOM.authView.classList.add('hidden');
                 DOM.sidebarView.classList.remove('hidden');
                 DOM.chatView.classList.remove('hidden');
-                window.scrollTo(0,0); // reset page alignment anomalies
+                window.scrollTo(0,0);
             } else {
                 DOM.authError.innerText = res.message;
                 DOM.authError.classList.remove('hidden');
