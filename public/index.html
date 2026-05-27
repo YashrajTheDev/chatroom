@@ -3,27 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AnonChat Pro Dashboard</title>
+    <title>Omegle Fun | Live Random Chat Dashboard</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root[data-theme="dark"] {
-            --bg-primary: #090d16;
-            --bg-surface: #131926;
+            --bg-primary: #0a0f1d;
+            --bg-surface: #141b2d;
+            --bg-card: #1e2640;
             --text-main: #f8fafc;
             --text-muted: #64748b;
-            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            --border-color: #1e293b;
-            --chat-user: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            --chat-partner: #1e293b;
+            --accent-gradient: linear-gradient(135deg, #ff4e50 0%, #f9d423 100%);
+            --accent-glow: rgba(255, 78, 80, 0.2);
+            --border-color: #222f4d;
+            --chat-user: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --chat-partner: #222f4d;
         }
         :root[data-theme="light"] {
-            --bg-primary: #f1f5f9;
+            --bg-primary: #f8fafc;
             --bg-surface: #ffffff;
+            --bg-card: #f1f5f9;
             --text-main: #0f172a;
             --text-muted: #94a3b8;
-            --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-            --border-color: #cbd5e1;
-            --chat-user: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            --accent-gradient: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+            --accent-glow: rgba(239, 68, 68, 0.1);
+            --border-color: #e2e8f0;
+            --chat-user: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             --chat-partner: #e2e8f0;
         }
 
@@ -31,152 +35,202 @@
         html, body { width: 100%; height: 100dvh; overflow: hidden; background-color: var(--bg-primary); color: var(--text-main); }
         .hidden { display: none !important; }
 
-        /* Dashboard Container Layout */
-        .app-container { width: 100%; height: 100%; display: grid; grid-template-columns: 280px 1fr 300px; overflow: hidden; }
+        /* Dashboard Main Layout Structure */
+        .app-container { width: 100%; height: 100%; display: grid; grid-template-columns: 260px 1fr; overflow: hidden; }
 
-        /* Left Side Menu Controls */
-        .sidebar-left { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
-        .brand { font-size: 1.4rem; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* Left Hand Side Menu Control Drawer */
+        .sidebar { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
+        .brand-logo { font-size: 1.6rem; font-weight: 900; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
 
-        /* Middle Workspace: Houses Streaming Frames and Panels */
-        .main-dashboard { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
+        /* Content Core Container View wrappers */
+        .main-workspace { position: relative; height: 100%; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* VIEW 1: LANDING DASHBOARD VIEW HUB */
+        .dashboard-landing { flex: 1; padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 32px; }
+        .hero-banner h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
         
-        /* Video Stream Engine Display Grid Layout */
-        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; background: var(--bg-primary); flex-shrink: 0; height: 40%; min-height: 200px; }
-        .video-wrapper { position: relative; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); }
-        .video-wrapper video { width: 100%; height: 100%; object-fit: cover; }
-        .video-label { position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; backdrop-filter: blur(4px); }
+        /* Interactive Option Matching Grid Cards */
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; }
+        .mode-selection-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 32px; cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; gap: 14px; position: relative; }
+        .mode-selection-card:hover { transform: translateY(-4px); border-color: #ff4e50; box-shadow: 0 12px 30px var(--accent-glow); }
+        .mode-selection-card h3 { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+        .badge-icon { width: 44px; height: 44px; background: var(--accent-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.3rem; }
 
-        /* Text Feed Module Workspace Area */
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-surface); overflow: hidden; border-top: 1px solid var(--border-color); }
-        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg-bubble { max-width: 70%; padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; word-break: break-word; }
+        /* INTEGRATED LIVE ADVERTISEMENT PLACEMENT BOXES */
+        .ads-dashboard-row { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin-top: auto; padding-top: 20px; }
+        .native-ad-wrapper { background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 16px; padding: 24px; display: flex; align-items: center; justify-content: center; min-height: 130px; text-align: center; position: relative; }
+        .ad-marker-tag { position: absolute; top: 8px; right: 12px; font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* VIEW 2: FULLY FUNCTIONAL INTERACTIVE LIVE MATCH ROOM */
+        .room-viewport { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-primary); }
+        .room-navbar { padding: 16px 24px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Dual Cam Tracking Split Grid Viewport */
+        .video-deck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; background: #000000; height: 45%; max-height: 360px; min-height: 220px; flex-shrink: 0; }
+        .video-wrapper-card { position: relative; background: #0b0f19; border-radius: 14px; overflow: hidden; border: 1px solid #1e293b; }
+        .video-wrapper-card video { width: 100%; height: 100%; object-fit: cover; }
+        .video-wrapper-card .overlay-label { position: absolute; bottom: 12px; left: 12px; background: rgba(0, 0, 0, 0.65); padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; backdrop-filter: blur(4px); }
+
+        /* Message feed core viewport layout block */
+        .chat-feed-wrapper { flex: 1; display: flex; flex-direction: column; background: var(--bg-surface); overflow: hidden; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg-bubble { max-width: 75%; padding: 12px 16px; border-radius: 16px; font-size: 0.98rem; word-break: break-word; line-height: 1.5; }
         .msg-bubble.me { background: var(--chat-user); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
-        .status-system { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin: 4px 0; background: rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 20px; align-self: center; }
+        .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin: 6px 0; background: rgba(0,0,0,0.2); padding: 6px 16px; border-radius: 20px; align-self: center; font-weight: 500; }
 
-        /* Input Controls Layout Panel bar */
-        .chat-input-bar { padding: 12px 16px; background: var(--bg-surface); border-top: 1px solid var(--border-color); display: flex; gap: 8px; align-items: center; }
-        .input-box-wrapper { flex: 1; display: flex; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 0 12px; align-items: center; }
-        .input-box-wrapper input { flex: 1; padding: 12px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 0.95rem; }
-        
-        .btn { padding: 12px 16px; background: var(--accent-gradient); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+        /* Layout-Preserving Chat Bottom Bar Input Field Container Box */
+        .chat-input-bar { padding: 14px 20px; background: var(--bg-surface); border-top: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+        .input-box-wrapper { flex: 1; display: flex; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 0 16px; align-items: center; }
+        .input-box-wrapper input { flex: 1; padding: 14px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
 
-        /* Right Sidebar Layout: Created Specifically For Your Ad Banners */
-        .sidebar-right { background: var(--bg-surface); border-left: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
-        .ad-space-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-        .ad-banner { width: 100%; min-height: 150px; background: var(--bg-primary); border: 2px dashed var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 12px; }
+        /* Global Reusable Action Button Component Elements */
+        .btn { padding: 14px 24px; background: var(--accent-gradient); color: #000000; color: white; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 4px 12px var(--accent-glow); transition: transform 0.1s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; box-shadow: none; }
 
-        /* Match Deck Display Cover Overlay */
-        .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        /* VIEW 3: SPINNING SEARCH LOADING RADAR SCREEN WALL OVERLAY */
+        .queue-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+        .radar-node { width: 88px; height: 88px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
+        .radar-node::before { content: ''; position: absolute; inset: -6px; border: 2px solid #ff4e50; border-radius: 50%; animation: radarPulse Loop 1.4s linear infinite; }
 
-        /* Auth Panel and credential wrappers */
-        .auth-panel { position: fixed; inset: 0; background: var(--bg-primary); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-        .auth-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 14px; }
-        .auth-form input { width: 100%; padding: 14px; border-radius: 12px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); outline: none; }
+        /* PORTAL AUTHENTICATION MODAL INITIAL OVERLAY BLOCK */
+        .auth-portal-screen { position: fixed; inset: 0; background: var(--bg-primary); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+        .auth-form-block { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+        .auth-form-block input { width: 100%; padding: 16px; border-radius: 14px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); outline: none; font-size: 1rem; }
 
-        /* Responsive Mobile Layout Form Factor Overrides */
-        @media (max-width: 900px) {
+        @keyframes radarPulseLoop { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
+
+        /* Device Adaptive Overrides Styles Layout */
+        @media (max-width: 768px) {
             .app-container { grid-template-columns: 1fr; }
-            .sidebar-left, .sidebar-right { display: none !important; }
-            .video-grid { height: 30%; }
+            .sidebar { display: none !important; }
+            .cards-grid, .ads-dashboard-row { grid-template-columns: 1fr; }
+            .dashboard-landing { padding: 20px; gap: 24px; }
+            .video-deck-grid { height: 35%; }
         }
     </style>
 </head>
 <body>
 
-    <div id="auth-view" class="auth-panel">
-        <h2 style="font-size: 2rem; margin-bottom: 4px; font-weight: 800;">AnonChat Dashboard</h2>
-        <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.9rem;">Sign in to open real-time dashboards.</p>
-        <form id="login-form" class="auth-form" onsubmit="return false;">
-            <input type="text" id="username" placeholder="Choose username..." autocomplete="username" required>
-            <input type="password" id="password" placeholder="Choose password..." autocomplete="current-password" required>
-            <button type="submit" class="btn" id="btn-login" style="justify-content: center;">Enter Dashboard</button>
-            <button type="button" class="btn btn-secondary" id="btn-register" style="justify-content: center; margin-top: -6px;">Create Profile</button>
+    <div id="auth-view" class="auth-portal-screen">
+        <div class="brand-logo" style="font-size: 2.4rem;">Omegle Fun</div>
+        <p style="color: var(--text-muted); margin-top: 6px; text-align:center;">Instant face-to-face chat dashboard sandbox rooms.</p>
+        
+        <form id="login-form" class="auth-form-block" onsubmit="return false;">
+            <input type="text" id="username" placeholder="Username (Leave blank for Anonymous Guest)..." autocomplete="username">
+            <input type="password" id="password" placeholder="Password (Optional credential block)..." autocomplete="current-password">
+            
+            <button type="submit" class="btn" id="btn-login" style="justify-content: center; background: var(--accent-gradient);">⚡ Enter Chat Dashboard</button>
+            <button type="button" class="btn btn-secondary" id="btn-register" style="justify-content: center;">Secure Custom Profile Account</button>
         </form>
         <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:12px;" class="hidden"></p>
     </div>
 
     <div class="app-container">
         
-        <div class="sidebar-left">
+        <div class="sidebar">
             <div>
-                <div class="brand">AnonChat Engine</div>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">P2P Video & Text Platform</p>
+                <div class="brand-logo">Omegle Fun</div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; font-weight: 500;">P2P Communications Framework</p>
             </div>
-            <div style="background: var(--bg-primary); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">USER PROFILE</span>
-                <h4 id="user-display" style="margin-top: 2px;">Guest</h4>
+            <div style="background: var(--bg-primary); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color);">
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; display:block; letter-spacing:0.5px; text-transform: uppercase;">Active Identity</span>
+                <h4 id="user-display-node" style="margin-top: 2px; overflow:hidden; text-overflow:ellipsis; font-weight:700;">Guest Account</h4>
             </div>
-            <button class="theme-toggle" id="theme-toggle-btn" style="width: 100%;">🌓 Toggle Theme</button>
+            <button class="btn btn-secondary" id="theme-toggle-btn" style="width: 100%;">🌓 Switch Theme Mode</button>
         </div>
 
-        <div class="main-dashboard">
+        <div class="main-workspace">
             
-            <div id="lobby-deck" class="lobby-overlay">
-                <h3 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Ready to Match?</h3>
-                <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem; max-width: 320px;">Grant camera access to enable real-time WebRTC audio and video rooms.</p>
-                <button class="btn" id="start-match-btn" style="padding: 14px 28px;">⚡ Find Random Match</button>
-                <button class="btn btn-danger hidden" id="cancel-match-btn">🛑 Cancel Search</button>
-            </div>
+            <div id="view-dashboard" class="dashboard-landing">
+                <div class="hero-banner">
+                    <h1>Welcome to the Hub</h1>
+                    <p style="color: var(--text-muted); margin-top: 2px;">Connect with random online users instantly using our text matching rooms or high-fidelity WebRTC streaming networks.</p>
+                </div>
 
-            <div class="video-grid">
-                <div class="video-wrapper">
-                    <video id="local-video" autoplay playsinline muted></video>
-                    <div class="video-label">You (My Stream)</div>
-                </div>
-                <div class="video-wrapper">
-                    <video id="remote-video" autoplay playsinline></video>
-                    <div class="video-label" id="partner-video-label">Stranger</div>
-                </div>
-            </div>
-
-            <div class="chat-container">
-                <div class="chat-messages" id="chat-box">
-                    <div class="status-system">Start matchmaking to open communications.</div>
-                </div>
-                
-                <div class="chat-input-bar">
-                    <button class="btn btn-danger" id="skip-btn" title="Skip Session">⏩ Skip</button>
-                    <div class="input-box-wrapper">
-                        <input type="text" id="msg-input" placeholder="Type message..." disabled>
+                <div class="cards-grid">
+                    <div class="mode-selection-card" id="card-mode-text">
+                        <div class="badge-icon">💬</div>
+                        <h3>Match Text Room</h3>
+                        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.4;">Instant random text-only chats. Ideal for low-latency network connections, remaining completely anonymous.</p>
                     </div>
-                    <button class="btn" id="send-btn" disabled>Send</button>
-                </div>
-            </div>
-        </div>
 
-        <div class="sidebar-right">
-            <span class="ad-space-header">Sponsored Content</span>
-            
-            <div class="ad-banner">
-                <div>
-                    <h5 style="color: var(--text-main); margin-bottom: 4px;">🚀 Ad Slot Alpha</h5>
-                    <p>Place custom text ads, marketplace banners, or link campaigns here.</p>
+                    <div class="mode-selection-card" id="card-mode-video">
+                        <div class="badge-icon">🎥</div>
+                        <h3>Match Cam Video</h3>
+                        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.4;">High-definition live video feeds paired directly alongside real-time chat modules. Requires active hardware permission checks.</p>
+                    </div>
+                </div>
+
+                <div class="ads-dashboard-row">
+                    <div class="native-ad-wrapper">
+                        <span class="ad-marker-tag">Sponsor Slot Alpha</span>
+                        <div style="color: var(--text-muted); font-size:0.85rem; line-height: 1.4;">📈 <strong>Promote Your Discord/Minecraft Server Here!</strong><br>Monetize active chatter loops by injecting ad-server banners directly into these structural placeholder panels.</div>
+                    </div>
+                    <div class="native-ad-wrapper">
+                        <span class="ad-marker-tag">Sponsor Slot Beta</span>
+                        <div style="color: var(--text-muted); font-size:0.85rem; line-height: 1.4;">🎯 <strong>Targeted Custom Ad Blocks Space</strong><br>Deliver impressions directly onto live responsive dashboards. Replace these with custom graphics or script trackers seamlessly.</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="ad-banner">
-                <div>
-                    <h5 style="color: var(--text-main); margin-bottom: 4px;">⚡ Ad Slot Beta</h5>
-                    <p>Monetize your random chat app platform with targeted offers.</p>
+            <div id="view-room" class="room-viewport hidden">
+                <div class="room-navbar">
+                    <div>
+                        <h4 id="partner-title-node">Connecting Peer...</h4>
+                        <p style="font-size:0.75rem; color:var(--text-muted);" id="partner-subtitle-node">Live encrypted workspace sync</p>
+                    </div>
+                    <button class="btn btn-danger" id="room-disconnect-btn" style="padding:10px 18px; font-size:0.85rem;">Disconnect Hub</button>
+                </div>
+
+                <div class="video-deck-grid hidden" id="room-video-viewport-grid">
+                    <div class="video-wrapper-card">
+                        <video id="local-video-track" autoplay playsinline muted></video>
+                        <div class="overlay-label">My Capture Cam</div>
+                    </div>
+                    <div class="video-wrapper-card">
+                        <video id="remote-video-track" autoplay playsinline></video>
+                        <div class="overlay-label" id="partner-video-stream-label">Stranger Remote Stream</div>
+                    </div>
+                </div>
+
+                <div class="chat-feed-wrapper">
+                    <div class="chat-messages" id="chat-stream-box"></div>
+                    
+                    <div class="chat-input-bar">
+                        <button class="btn btn-danger" id="action-skip-btn">⏩ Skip User</button>
+                        <div class="input-box-wrapper">
+                            <input type="text" id="msg-input" placeholder="Type a message to stranger..." disabled>
+                        </div>
+                        <button class="btn" id="action-send-btn" style="background: var(--accent-gradient); color:#000;" disabled>Send</button>
+                    </div>
                 </div>
             </div>
+
+            <div id="view-queue" class="queue-overlay hidden">
+                <div class="radar-node">
+                    <svg width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight:800; margin-bottom:6px;" id="queue-status-title-node">Filtering Global Connections...</h3>
+                <p style="color: var(--text-muted); font-size:0.92rem; margin-bottom:24px;">Locating an online match. Please hold on.</p>
+                <button class="btn btn-danger" id="queue-cancel-btn">Abort Connection Search</button>
+            </div>
+
         </div>
     </div>
 
     <script>
         const socket = io(window.location.origin);
-        let theme = 'dark';
-        let localStream = null;
-        let peerConnection = null;
-        let isInitiator = false;
-
-        // Public STUN configuration endpoints to handle WebRTC NAT traversal safely for free
-        const rtcConfig = {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        };
+        let currentThemeState = 'dark';
+        let userProfileAlias = '';
+        let chosenMatchMode = null; // 'text' or 'video'
+        let coreState = 'idle'; // idle, queuing, matched
+        
+        let localHardwareStream = null;
+        let rtcPeerConnectionNode = null;
+        const publicStunGateway = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         const DOM = {
             authView: document.getElementById('auth-view'),
@@ -186,173 +240,217 @@
             loginBtn: document.getElementById('btn-login'),
             registerBtn: document.getElementById('btn-register'),
             authError: document.getElementById('auth-error'),
-            userDisplay: document.getElementById('user-display'),
-            lobbyDeck: document.getElementById('lobby-deck'),
-            startMatch: document.getElementById('start-match-btn'),
-            cancelMatch: document.getElementById('cancel-match-btn'),
-            localVideo: document.getElementById('local-video'),
-            remoteVideo: document.getElementById('remote-video'),
-            partnerLabel: document.getElementById('partner-video-label'),
-            chatBox: document.getElementById('chat-box'),
+            userDisplayNode: document.getElementById('user-display-node'),
+            
+            viewDashboard: document.getElementById('view-dashboard'),
+            viewRoom: document.getElementById('view-room'),
+            viewQueue: document.getElementById('view-queue'),
+            
+            cardTextMode: document.getElementById('card-mode-text'),
+            cardVideoMode: document.getElementById('card-mode-video'),
+            
+            queueCancelBtn: document.getElementById('queue-cancel-btn'),
+            roomDisconnectBtn: document.getElementById('room-disconnect-btn'),
+            
+            roomVideoViewportGrid: document.getElementById('room-video-viewport-grid'),
+            localVideoTrack: document.getElementById('local-video-track'),
+            remoteVideoTrack: document.getElementById('remote-video-track'),
+            partnerVideoStreamLabel: document.getElementById('partner-video-stream-label'),
+            
+            partnerTitleNode: document.getElementById('partner-title-node'),
+            partnerSubtitleNode: document.getElementById('partner-subtitle-node'),
+            chatStreamBox: document.getElementById('chat-stream-box'),
             msgInput: document.getElementById('msg-input'),
-            sendBtn: document.getElementById('send-btn'),
-            skipBtn: document.getElementById('skip-btn'),
+            sendBtn: document.getElementById('action-send-btn'),
+            skipBtn: document.getElementById('action-skip-btn'),
             themeBtn: document.getElementById('theme-toggle-btn')
         };
 
-        // Theme management toggler logic
+        // Layout Dark/Light Theme Switching logic
         DOM.themeBtn.addEventListener('click', () => {
-            theme = theme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
+            currentThemeState = currentThemeState === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentThemeState);
         });
 
-        // Authentication Submission Routing Pipeline
-        DOM.loginForm.addEventListener('submit', (e) => { e.preventDefault(); authRequest(false); });
-        DOM.registerBtn.addEventListener('click', () => authRequest(true));
+        // Authentication Submission pipeline processing
+        DOM.loginForm.addEventListener('submit', (e) => { e.preventDefault(); executeAuthRequest(false); });
+        DOM.registerBtn.addEventListener('click', () => executeAuthRequest(true));
 
-        function authRequest(isRegistering) {
-            const username = DOM.username.value.trim();
-            const password = DOM.password.value;
-            if (username && password) socket.emit('auth', { username, password, isRegistering });
+        function executeAuthRequest(isRegistering) {
+            const u = DOM.username.value.trim();
+            const p = DOM.password.value;
+            // Send empty data values seamlessly to auto-trigger the Guest provision system architecture loop
+            socket.emit('auth', { username: u, password: p, isRegistering });
         }
 
         socket.on('auth-response', (res) => {
             if (res.success) {
-                DOM.userDisplay.innerText = res.username;
+                userProfileAlias = res.username;
+                DOM.userDisplayNode.innerText = userProfileAlias;
                 DOM.authView.classList.add('hidden');
-                initMediaCapture(); // Trigger camera access check as soon as dashboard unlocks
             } else {
                 DOM.authError.innerText = res.message;
                 DOM.authError.classList.remove('hidden');
             }
         });
 
-        // Camera capture setup initialization
-        async function initMediaCapture() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                DOM.localVideo.srcObject = localStream;
-            } catch (err) {
-                appendSystemMessage("⚠️ Camera/Microphone access rejected. Video tracking disabled.");
-                console.error("Camera access error:", err);
+        // Dashboard Route Pipeline Navigation triggers
+        DOM.cardTextMode.addEventListener('click', () => runMatchmakingProcess('text'));
+        DOM.cardVideoMode.addEventListener('click', () => runMatchmakingProcess('video'));
+        
+        DOM.queueCancelBtn.addEventListener('click', () => { socket.emit('skip-match'); routeBackToDashboardHub(); });
+        DOM.roomDisconnectBtn.addEventListener('click', () => { socket.emit('skip-match'); routeBackToDashboardHub(); });
+        DOM.skipBtn.addEventListener('click', () => { socket.emit('skip-match'); runMatchmakingProcess(chosenMatchMode); });
+
+        async function runMatchmakingProcess(mode) {
+            chosenMatchMode = mode;
+            coreState = 'queuing';
+            
+            DOM.viewDashboard.classList.add('hidden');
+            DOM.viewRoom.classList.add('hidden');
+            DOM.viewQueue.classList.remove('hidden');
+
+            // Access hardware capture nodes instantly only when initiating video tracks channels
+            if(mode === 'video' && !localHardwareStream) {
+                try {
+                    localHardwareStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    DOM.localVideoTrack.srcObject = localHardwareStream;
+                } catch (err) {
+                    console.error("Hardware tracking authorization failed:", err);
+                    appendSystemMessage("⚠️ Video authorization denied or unavailable. Connecting over text only.");
+                }
             }
+            socket.emit('find-match', { mode });
         }
 
-        // Matchmaking execution triggers
-        DOM.startMatch.addEventListener('click', () => socket.emit('find-match'));
-        DOM.cancelMatch.addEventListener('click', () => resetToLobby('Search cancelled.'));
-        DOM.skipBtn.addEventListener('click', () => { socket.emit('skip-match'); resetToLobby('Session closed.'); });
-
         socket.on('waiting', () => {
-            DOM.startMatch.classList.add('hidden');
-            DOM.cancelMatch.classList.remove('hidden');
+            document.getElementById('queue-status-title-node').innerText = `Searching ${chosenMatchMode.toUpperCase()} Channels...`;
         });
 
-        socket.on('match-found', async (data) => {
-            DOM.lobbyDeck.classList.add('hidden');
+        socket.on('match-found', (data) => {
+            coreState = 'matched';
+            DOM.viewQueue.classList.add('hidden');
+            DOM.viewRoom.classList.remove('hidden');
+            
             DOM.msgInput.removeAttribute('disabled');
             DOM.sendBtn.removeAttribute('disabled');
-            DOM.partnerLabel.innerText = data.partnerName;
-            DOM.chatBox.innerHTML = '';
-            appendSystemMessage(`Connected to **${data.partnerName}**.`);
+            DOM.partnerTitleNode.innerText = data.partnerName;
+            DOM.partnerSubtitleNode.innerText = `Anonymously paired in ${data.mode} sandbox channel`;
+            DOM.chatStreamBox.innerHTML = '';
             
-            isInitiator = data.initiateCall;
-            if (localStream) setupWebRTCPeerConnection();
+            appendSystemMessage(`Connected with stranger **${data.partnerName}**. Say hi!`);
+
+            if (data.mode === 'video') {
+                DOM.roomVideoViewportGrid.classList.remove('hidden');
+                DOM.partnerVideoStreamLabel.innerText = `${data.partnerName}'s Camera`;
+                if(localHardwareStream) buildWebRTCConnectionLayer(data.initiateCall);
+            } else {
+                DOM.roomVideoViewportGrid.classList.add('hidden');
+            }
+            DOM.msgInput.focus();
         });
 
-        // WebRTC Core Signaling Pipeline Architecture Logic
-        function setupWebRTCPeerConnection() {
-            peerConnection = new RTCPeerConnection(rtcConfig);
+        socket.on('partner-disconnected', () => {
+            appendSystemMessage("❌ Stranger has skipped or disconnected from this room.");
+            terminatePeerConnectionTracks();
+            DOM.msgInput.setAttribute('disabled', 'true');
+            DOM.sendBtn.setAttribute('disabled', 'true');
+        });
 
-            // Append local track parameters to downstream channel pipes
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        function routeBackToDashboardHub() {
+            coreState = 'idle';
+            terminatePeerConnectionTracks();
+            if(localHardwareStream) {
+                localHardwareStream.getTracks().forEach(t => t.stop());
+                localHardwareStream = null;
+                DOM.localVideoTrack.srcObject = null;
+            }
+            DOM.viewRoom.classList.add('hidden');
+            DOM.viewQueue.classList.add('hidden');
+            DOM.viewDashboard.classList.remove('hidden');
+        }
 
-            // Stream intercept hooks to handle returning partner outputs
-            peerConnection.ontrack = (event) => {
-                if (DOM.remoteVideo.srcObject !== event.streams[0]) {
-                    DOM.remoteVideo.srcObject = event.streams[0];
+        // WebRTC peer connections orchestration pipelines loops logic
+        function buildWebRTCConnectionLayer(isCallInitiator) {
+            terminatePeerConnectionTracks();
+            rtcPeerConnectionNode = new RTCPeerConnection(publicStunGateway);
+            
+            if(localHardwareStream) {
+                localHardwareStream.getTracks().forEach(track => rtcPeerConnectionNode.addTrack(track, localHardwareStream));
+            }
+
+            rtcPeerConnectionNode.ontrack = (e) => { 
+                if (DOM.remoteVideoTrack.srcObject !== e.streams[0]) {
+                    DOM.remoteVideoTrack.srcObject = e.streams[0]; 
                 }
             };
-
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.emit('webrtc-signal', { candidate: event.candidate });
-                }
+            
+            rtcPeerConnectionNode.onicecandidate = (e) => { 
+                if(e.candidate) socket.emit('webrtc-signal', { candidate: e.candidate }); 
             };
 
-            if (isInitiator) {
-                peerConnection.onnegotiationneeded = async () => {
+            if (isCallInitiator) {
+                rtcPeerConnectionNode.onnegotiationneeded = async () => {
                     try {
-                        const offer = await peerConnection.createOffer();
-                        await peerConnection.setLocalDescription(offer);
-                        socket.emit('webrtc-signal', { sdp: peerConnection.localDescription });
-                    } catch (err) { console.error(err); }
+                        const baseOffer = await rtcPeerConnectionNode.createOffer();
+                        await rtcPeerConnectionNode.setLocalDescription(baseOffer);
+                        socket.emit('webrtc-signal', { sdp: rtcPeerConnectionNode.localDescription });
+                    } catch (err) { console.error("WebRTC Negotiation offer dispatch error:", err); }
                 };
             }
         }
 
         socket.on('webrtc-signal', async (data) => {
-            if (!peerConnection) return;
+            if (!rtcPeerConnectionNode) return;
             try {
                 if (data.sdp) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    if (peerConnection.remoteDescription.type === 'offer') {
-                        const answer = await peerConnection.createAnswer();
-                        await peerConnection.setLocalDescription(answer);
-                        socket.emit('webrtc-signal', { sdp: peerConnection.localDescription });
+                    await rtcPeerConnectionNode.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    if (rtcPeerConnectionNode.remoteDescription.type === 'offer') {
+                        const implicitAnswer = await rtcPeerConnectionNode.createAnswer();
+                        await rtcPeerConnectionNode.setLocalDescription(implicitAnswer);
+                        socket.emit('webrtc-signal', { sdp: rtcPeerConnectionNode.localDescription });
                     }
                 } else if (data.candidate) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    await rtcPeerConnectionNode.addIceCandidate(new RTCIceCandidate(data.candidate));
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Signaling application tracking fault:", err); }
         });
 
-        socket.on('partner-disconnected', () => resetToLobby('Your partner left the session.'));
-
-        function resetToLobby(statusMessage) {
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
+        function terminatePeerConnectionTracks() {
+            if(rtcPeerConnectionNode) { 
+                rtcPeerConnectionNode.close(); 
+                rtcPeerConnectionNode = null; 
             }
-            DOM.remoteVideo.srcObject = null;
-            DOM.msgInput.setAttribute('disabled', 'true');
-            DOM.sendBtn.setAttribute('disabled', 'true');
-            DOM.msgInput.value = '';
-            DOM.partnerLabel.innerText = "Stranger";
-            DOM.cancelMatch.classList.add('hidden');
-            DOM.startMatch.classList.remove('hidden');
-            DOM.lobbyDeck.classList.remove('hidden');
-            appendSystemMessage(statusMessage);
+            DOM.remoteVideoTrack.srcObject = null;
         }
 
-        // Standard Text Messaging Dispatch Layers
-        DOM.sendBtn.addEventListener('click', sendMessage);
-        DOM.msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        // Text Message Transmission dispatch logic
+        DOM.sendBtn.addEventListener('click', processOutgoingMessage);
+        DOM.msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') processOutgoingMessage(); });
 
-        function sendMessage() {
-            const msg = DOM.msgInput.value.trim();
-            if (!msg) return;
-            socket.emit('send-message', msg);
-            appendMessage(msg, 'me');
+        function processOutgoingMessage() {
+            const currentStringValue = DOM.msgInput.value.trim();
+            if(!currentStringValue) return;
+            socket.emit('send-message', currentStringValue);
+            appendMessageNode(currentStringValue, 'me');
             DOM.msgInput.value = '';
         }
+        socket.on('receive-message', (msg) => appendMessageNode(msg, 'them'));
 
-        socket.on('receive-message', (msg) => appendMessage(msg, 'them'));
-
-        function appendMessage(text, side) {
-            const el = document.createElement('div');
-            el.className = `msg-bubble ${side}`;
-            el.innerText = text;
-            DOM.chatBox.appendChild(el);
-            DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
+        function appendMessageNode(text, teamVariant) {
+            const dynamicMessageBubble = document.createElement('div'); 
+            dynamicMessageBubble.className = `msg-bubble ${teamVariant}`; 
+            dynamicMessageBubble.innerText = text;
+            DOM.chatStreamBox.appendChild(dynamicMessageBubble); 
+            DOM.chatStreamBox.scrollTop = DOM.chatStreamBox.scrollHeight;
         }
-
+        
         function appendSystemMessage(text) {
-            const el = document.createElement('div');
-            el.className = 'status-system';
-            el.innerText = text;
-            DOM.chatBox.appendChild(el);
-            DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
+            const dynamicSystemBubble = document.createElement('div'); 
+            dynamicSystemBubble.className = 'status-system'; 
+            dynamicSystemBubble.innerText = text;
+            DOM.chatStreamBox.appendChild(dynamicSystemBubble); 
+            DOM.chatStreamBox.scrollTop = DOM.chatStreamBox.scrollHeight;
         }
     </script>
 </body>
