@@ -2,247 +2,157 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AnonChat Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AnonChat Pro v2</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root[data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-surface: #1e293b;
+            --bg-primary: #090d16;
+            --bg-surface: #131926;
             --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --border-color: #334155;
-            --chat-user: #6366f1;
-            --chat-partner: #334155;
+            --text-muted: #64748b;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --accent-glow: rgba(147, 51, 234, 0.3);
+            --border-color: #1e293b;
+            --chat-user: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            --chat-partner: #1e293b;
         }
 
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc;
+            --bg-primary: #f1f5f9;
             --bg-surface: #ffffff;
             --text-main: #0f172a;
-            --text-muted: #64748b;
-            --accent: #4f46e5;
-            --accent-hover: #4338ca;
-            --border-color: #e2e8f0;
-            --chat-user: #4f46e5;
+            --text-muted: #94a3b8;
+            --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+            --accent-glow: rgba(6, 182, 212, 0.2);
+            --border-color: #cbd5e1;
+            --chat-user: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
             --chat-partner: #e2e8f0;
         }
 
         * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: system-ui, -apple-system, sans-serif; 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
             -webkit-tap-highlight-color: transparent;
         }
         
         body { 
-            background-color: var(--bg-primary); 
-            color: var(--text-main); 
-            transition: background 0.3s; 
-            height: 100vh; 
-            height: -webkit-fill-available;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            overflow: hidden;
+            background-color: var(--bg-primary); color: var(--text-main); 
+            transition: background 0.3s; height: 100dvh; 
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
         
         .hidden { display: none !important; }
         
-        /* Main Shell - Full Screen on Mobile, Framed on Desktop */
+        /* Layout Grid Shell */
         .app-container { 
-            width: 100%; 
-            height: 100vh;
-            background: var(--bg-surface); 
-            display: grid; 
-            grid-template-columns: 300px 1fr; 
-            overflow: hidden; 
+            width: 100%; height: 100dvh; background: var(--bg-surface); 
+            display: grid; grid-template-columns: 320px 1fr; overflow: hidden; 
         }
 
-        /* Sidebar Styling (Desktop view) */
+        /* Sidebar UI */
         .sidebar { 
-            background: var(--bg-surface); 
-            border-right: 1px solid var(--border-color); 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            padding: 24px; 
+            background: var(--bg-surface); border-right: 1px solid var(--border-color); 
+            display: flex; flex-direction: column; justify-content: space-between; padding: 28px; 
         }
-        
-        .profile-card h3 { margin-bottom: 4px; font-size: 1.2rem; }
-        .profile-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;}
+        .brand-logo { font-size: 1.5rem; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 24px; letter-spacing: -0.5px; }
         
         .btn { 
-            width: 100%; 
-            padding: 14px; 
-            background: var(--accent); 
-            color: white; 
-            border: none; 
-            border-radius: 12px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            width: 100%; padding: 14px; background: var(--accent-gradient); color: white; 
+            border: none; border-radius: 14px; font-weight: 600; cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s; font-size: 0.95rem;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 12px var(--accent-glow);
         }
-        .btn:hover { background: var(--accent-hover); }
-        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); margin-top: 12px; }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none; margin-top: 12px; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
 
-        /* Auth Panel Centered Layout */
+        /* Auth Panel */
         .auth-panel { 
-            grid-column: span 2; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            max-width: 400px; 
-            margin: 0 auto; 
-            width: 100%; 
-            height: 100%; 
-            padding: 24px; 
+            grid-column: span 2; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; max-width: 400px; 
+            margin: 0 auto; width: 100%; height: 100%; padding: 24px; 
         }
-        .auth-panel h2 { margin-bottom: 24px; font-size: 1.8rem; font-weight: 700; }
-        .input-group { width: 100%; margin-bottom: 16px; }
-        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        .auth-panel h2 { margin-bottom: 8px; font-size: 2rem; font-weight: 800; }
+        .auth-panel p { color: var(--text-muted); margin-bottom: 28px; font-size: 0.9rem; }
+        .input-group { width: 100%; margin-bottom: 18px; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .input-group input { 
-            width: 100%; 
-            padding: 14px; 
-            border-radius: 12px; 
-            background: var(--bg-primary); 
-            border: 1px solid var(--border-color); 
-            color: var(--text-main); 
-            outline: none; 
-            font-size: 1rem;
-            transition: border 0.2s;
+            width: 100%; padding: 16px; border-radius: 14px; background: var(--bg-primary); 
+            border: 1px solid var(--border-color); color: var(--text-main); outline: none; 
+            font-size: 1rem; transition: border-color 0.2s;
         }
-        .input-group input:focus { border-color: var(--accent); }
+        .input-group input:focus { border-color: #6366f1; }
 
-        /* Chat Window Workspace */
-        .chat-area { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+        /* Chat Core Workspace */
+        .chat-area { display: flex; flex-direction: column; height: 100dvh; background: var(--bg-primary); width: 100%; }
         .chat-header { 
-            padding: 16px 20px; 
-            background: var(--bg-surface);
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
+            padding: 18px 24px; background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color); display: flex; 
+            justify-content: space-between; align-items: center; z-index: 5;
         }
+        .partner-info h4 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; }
+        .status-dot.offline { background: #64748b; }
+
+        /* Fixes Mobile Scrolling & Layout Visibility Container */
         .chat-messages { 
-            flex: 1; 
-            padding: 20px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
+            flex: 1; padding: 24px; overflow-y: auto; 
+            display: flex; flex-direction: column; gap: 14px;
+            scroll-behavior: smooth;
         }
         
         .msg-bubble { 
-            max-width: 80%; 
-            padding: 12px 16px; 
-            border-radius: 16px; 
-            line-height: 1.5; 
-            font-size: 0.95rem; 
-            word-break: break-word; 
+            max-width: 75%; padding: 14px 18px; border-radius: 18px; 
+            line-height: 1.5; font-size: 0.98rem; word-break: break-word; 
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .msg-bubble.me { background: var(--chat-user); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 4px; }
-        .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; font-style: italic; margin: 8px 0; }
+        .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; margin: 12px 0; background: rgba(0,0,0,0.1); padding: 6px 14px; border-radius: 20px; align-self: center; }
 
-        .chat-input-bar { 
-            padding: 16px; 
-            background: var(--bg-surface);
-            border-top: 1px solid var(--border-color); 
-            display: flex; 
-            gap: 10px; 
-            align-items: center;
-        }
-        .chat-input-bar input { 
-            flex: 1; 
-            padding: 14px; 
-            border-radius: 12px; 
-            background: var(--bg-primary); 
-            border: 1px solid var(--border-color); 
-            color: var(--text-main); 
-            outline: none; 
-            font-size: 1rem;
-        }
-        .chat-input-bar .btn { width: auto; padding: 14px 24px; }
+        /* Dynamic Input Bar Workspace */
+        .chat-input-wrapper { background: var(--bg-surface); border-top: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-input-bar { display: flex; gap: 10px; align-items: center; width: 100%; }
         
-        .theme-toggle { cursor: pointer; padding: 10px 14px; border-radius: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; font-weight: 500; }
+        .input-field-container { flex: 1; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 2px 8px 2px 16px; transition: border-color 0.2s; }
+        .input-field-container:focus-within { border-color: #6366f1; }
+        .input-field-container input { flex: 1; padding: 14px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
+        
+        .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px; cursor: pointer; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
+        .icon-btn:hover, .icon-btn.active { color: var(--text-main); }
+        
+        /* Inline Custom Emoji Shelf Drawer */
+        .emoji-shelf { display: flex; gap: 12px; overflow-x: auto; padding: 8px 4px; border-bottom: 1px solid var(--border-color); font-size: 1.4rem; -webkit-overflow-scrolling: touch; }
+        .emoji-shelf span { cursor: pointer; transition: transform 0.1s; user-select: none; }
+        .emoji-shelf span:active { transform: scale(1.3); }
 
-        /* Mobile Bottom Nav Controls (Hidden on Desktop) */
-        .mobile-nav { display: none; }
-        .mobile-profile-modal { display: none; }
+        .theme-toggle { cursor: pointer; padding: 10px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; font-weight: 600; }
+
+        /* Landing Control Deck Overlay (Big Search Engine Screen) */
+        .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
+        .lobby-card { max-width: 420px; width: 100%; }
+        .radar-pulse { width: 96px; height: 96px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
+        .radar-pulse::before, .radar-pulse::after { content: ''; position: absolute; inset: -4px; border: 2px solid #a855f7; border-radius: 50%; animation: pulseRing 1.5s linear infinite; opacity: 0; }
+        .radar-pulse::after { animation-delay: 0.75s; }
+
+        @keyframes pulseRing {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
 
         /* 📱 RESPONSIVE MOBILE MARKUP OVERRIDES */
         @media (max-width: 768px) {
-            .app-container { grid-template-columns: 1fr; height: 100vh; }
-            .sidebar { display: none !important; } /* Hide classic sidebar completely */
-            
-            .chat-area { height: calc(100vh - 65px); } /* Leave room for bottom bar */
-            
-            /* Mobile Action Navbar Configuration */
-            .mobile-nav { 
-                display: flex; 
-                position: fixed; 
-                bottom: 0; 
-                left: 0; 
-                right: 0; 
-                height: 65px; 
-                background: var(--bg-surface); 
-                border-top: 1px solid var(--border-color); 
-                z-index: 10;
-                justify-content: space-around;
-                align-items: center;
-                padding: 0 10px;
-            }
-            .mobile-nav-item {
-                background: transparent;
-                border: none;
-                color: var(--text-muted);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                font-size: 0.75rem;
-                font-weight: 500;
-                cursor: pointer;
-                gap: 4px;
-            }
-            .mobile-nav-item.active-action { color: var(--accent); }
-            .mobile-nav-item svg { width: 22px; height: 22px; fill: currentColor; }
-
-            /* Mobile Layer Profile Drawer Overlay */
-            .mobile-profile-modal {
-                position: fixed;
-                top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.6);
-                backdrop-filter: blur(4px);
-                z-index: 99;
-                display: flex;
-                align-items: flex-end;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.2s, visibility 0.2s;
-            }
-            .mobile-profile-modal.open { visibility: visible; opacity: 1; }
-            .mobile-profile-content {
-                background: var(--bg-surface);
-                width: 100%;
-                border-top-left-radius: 24px;
-                border-top-right-radius: 24px;
-                padding: 24px;
-                transform: translateY(100%);
-                transition: transform 0.25s ease-out;
-            }
-            .mobile-profile-modal.open .mobile-profile-content { transform: translateY(0); }
+            .app-container { grid-template-columns: 1fr; }
+            .sidebar { display: none !important; }
+            .chat-area { height: 100dvh; }
+            .msg-bubble { max-width: 85%; }
+            .mobile-header-btn { display: flex !important; }
         }
     </style>
 </head>
@@ -250,79 +160,87 @@
 
     <div class="app-container">
         <div id="auth-view" class="auth-panel">
-            <h2>Sign In / Join</h2>
+            <div class="brand-logo" style="font-size: 2.2rem; margin-bottom: 8px;">AnonChat</div>
+            <p>Connect instantly with real people worldwide.</p>
             <div class="input-group">
                 <label>Custom Username</label>
-                <input type="text" id="username" placeholder="e.g. ShadowCoder" autocomplete="off">
+                <input type="text" id="username" placeholder="Pick an alias..." autocomplete="off">
             </div>
             <div class="input-group">
                 <label>Password</label>
                 <input type="password" id="password" placeholder="••••••••">
             </div>
-            <button class="btn" id="btn-login">Login</button>
-            <button class="btn btn-secondary" id="btn-register">Create Account</button>
+            <button class="btn" id="btn-login">Login Space</button>
+            <button class="btn btn-secondary" id="btn-register">Create New Profile</button>
             <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:15px;" class="hidden"></p>
         </div>
 
         <div id="sidebar-view" class="sidebar hidden">
-            <div class="profile-card">
-                <p>Logged in as:</p>
-                <h3 class="display-username">Guest User</h3>
-                <span class="status-system">Status: Ready</span>
-                <hr style="border-color: var(--border-color); margin: 20px 0;">
-                <button class="btn desktop-match-btn">⚡ Find Match</button>
-                <button class="btn btn-secondary btn-danger hidden desktop-skip-btn">⏩ Skip Room</button>
+            <div>
+                <div class="brand-logo">AnonChat Pro</div>
+                <div style="background: var(--bg-primary); padding: 18px; border-radius: 16px; border: 1px solid var(--border-color);">
+                    <p style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Active Profile</p>
+                    <h3 id="desktop-username" style="margin-top: 4px; font-weight: 700;">Guest</h3>
+                </div>
             </div>
-            <button class="theme-toggle global-theme-btn">🌓 Toggle Theme</button>
+            <button class="theme-toggle" id="desktop-theme-btn">🌓 Change Theme</button>
         </div>
 
         <div id="chat-view" class="chat-area hidden">
             <div class="chat-header">
-                <div>
-                    <h4 id="partner-status-title">Stranger Profile</h4>
-                    <p style="font-size:0.8rem; color:var(--text-muted);" id="partner-subtext">No connection active.</p>
+                <div class="partner-info">
+                    <h4 id="header-title">Welcome Portal</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted);" id="header-subtitle">Ready to search matches</p>
                 </div>
-                <button class="theme-toggle global-theme-btn mobile-hidden-btn" style="padding: 6px 12px;">🌓 Theme</button>
+                <button class="theme-toggle mobile-header-btn" id="mobile-theme-btn" style="display:none;">🌓 Mode</button>
             </div>
             
-            <div class="chat-messages" id="chat-box">
-                <div class="status-system">Tap "Find Match" below to start searching for random users.</div>
+            <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <div id="lobby-deck" class="lobby-overlay">
+                    <div class="lobby-card">
+                        <div class="radar-pulse" id="radar-node">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v4M8 23h8"/></svg>
+                        </div>
+                        <h3 id="lobby-status-title" style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px;">Find Your Match</h3>
+                        <p id="lobby-status-desc" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px;">No strings attached. Join rooms instantly.</p>
+                        <button class="btn" id="action-match-btn">⚡ Connect to Random User</button>
+                        <button class="btn btn-danger hidden" id="action-cancel-btn">🛑 Cancel Search</button>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chat-box"></div>
             </div>
 
-            <div class="chat-input-bar">
-                <input type="text" id="msg-input" placeholder="Say something..." disabled>
-                <button class="btn" id="btn-send" disabled>Send</button>
+            <div class="chat-input-wrapper">
+                <div class="emoji-shelf hidden" id="emoji-panel">
+                    <span>😀</span><span>😂</span><span>😍</span><span>👍</span><span>🔥</span><span>🎉</span><span>💀</span><span>👀</span><span>❤️</span><span>✨</span><span>🤔</span><span>💯</span>
+                </div>
+                
+                <div class="chat-input-bar">
+                    <button class="btn btn-danger" id="inline-skip-btn" style="width: auto; padding: 14px 18px; border-radius: 14px;" title="Skip Stranger">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </button>
+                    
+                    <div class="input-field-container">
+                        <button class="icon-btn" id="emoji-toggle-btn" type="button">😊</button>
+                        <input type="text" id="msg-input" placeholder="Type a message..." disabled>
+                    </div>
+                    
+                    <button class="btn" id="btn-send" style="width: auto; padding: 14px 20px;" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    </button>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <div id="mobile-dock" class="mobile-nav hidden">
-        <button class="mobile-nav-item active-action" id="nav-match-trigger">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-            <span id="mobile-match-text">Find Match</span>
-        </button>
-        <button class="mobile-nav-item" id="nav-profile-trigger">
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z"/></svg>
-            <span>Profile</span>
-        </button>
-    </div>
-
-    <div id="profile-modal" class="mobile-profile-modal">
-        <div class="mobile-profile-content">
-            <h3 style="margin-bottom: 4px;">My Profile</h3>
-            <p style="color: var(--text-muted); font-size:0.9rem; margin-bottom:20px;">Logged in as: <strong class="display-username" style="color: var(--text-main)">Guest</strong></p>
-            <button class="btn global-theme-btn" style="margin-bottom:12px;">🌓 Change Theme Mode</button>
-            <button class="btn btn-secondary" id="close-profile-btn" style="margin:0;">Close Panel</button>
         </div>
     </div>
 
     <script>
         const socket = io(window.location.origin);
-        let currentTheme = 'dark';
-        let myUsername = '';
-        let isSearchingOrMatched = false;
+        let themeState = 'dark';
+        let profileName = '';
+        let matchState = 'idle'; // idle, queuing, connected
 
-        const elements = {
+        const DOM = {
             authView: document.getElementById('auth-view'),
             sidebarView: document.getElementById('sidebar-view'),
             chatView: document.getElementById('chat-view'),
@@ -334,123 +252,122 @@
             chatBox: document.getElementById('chat-box'),
             msgInp: document.getElementById('msg-input'),
             sendBtn: document.getElementById('btn-send'),
-            partnerTitle: document.getElementById('partner-status-title'),
-            partnerSub: document.getElementById('partner-subtext'),
-            mobileDock: document.getElementById('mobile-dock'),
-            profileModal: document.getElementById('profile-modal'),
-            navMatch: document.getElementById('nav-match-trigger'),
-            navProfile: document.getElementById('nav-profile-trigger'),
-            mobileMatchText: document.getElementById('mobile-match-text')
+            headerTitle: document.getElementById('header-title'),
+            headerSubtitle: document.getElementById('header-subtitle'),
+            lobbyDeck: document.getElementById('lobby-deck'),
+            lobbyTitle: document.getElementById('lobby-status-title'),
+            lobbyDesc: document.getElementById('lobby-status-desc'),
+            matchBtn: document.getElementById('action-match-btn'),
+            cancelBtn: document.getElementById('action-cancel-btn'),
+            inlineSkip: document.getElementById('inline-skip-btn'),
+            emojiToggle: document.getElementById('emoji-toggle-btn'),
+            emojiPanel: document.getElementById('emoji-panel'),
+            radar: document.getElementById('radar-node')
         };
 
-        // Theme Sync Loops (Handles both desktop + mobile actions cleanly)
-        document.querySelectorAll('.global-theme-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', currentTheme);
-            });
-        });
-
-        // Mobile Profile Drawer Management
-        elements.navProfile.addEventListener('click', () => elements.profileModal.classList.add('open'));
-        document.getElementById('close-profile-btn').addEventListener('click', () => elements.profileModal.classList.remove('open'));
-        elements.profileModal.addEventListener('click', (e) => { if(e.target === elements.profileModal) elements.profileModal.classList.remove('open'); });
+        // Theme management controls
+        function toggleTheme() {
+            themeState = themeState === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', themeState);
+        }
+        document.getElementById('desktop-theme-btn').addEventListener('click', toggleTheme);
+        document.getElementById('mobile-theme-btn').addEventListener('click', toggleTheme);
 
         // Authentication Submission Pipeline
-        elements.loginBtn.addEventListener('click', () => submitAuth(false));
-        elements.registerBtn.addEventListener('click', () => submitAuth(true));
+        DOM.loginBtn.addEventListener('click', () => dispatchAuth(false));
+        DOM.registerBtn.addEventListener('click', () => dispatchAuth(true));
 
-        function submitAuth(isRegistering) {
+        function dispatchAuth(isRegistering) {
             socket.emit('auth', {
-                username: elements.usernameInp.value.trim(),
-                password: elements.passwordInp.value,
+                username: DOM.usernameInp.value.trim(),
+                password: DOM.passwordInp.value,
                 isRegistering
             });
         }
 
         socket.on('auth-response', (res) => {
             if (res.success) {
-                myUsername = res.username;
-                document.querySelectorAll('.display-username').forEach(el => el.innerText = myUsername);
-                elements.authView.classList.add('hidden');
-                elements.sidebarView.classList.remove('hidden');
-                elements.chatView.classList.remove('hidden');
-                elements.mobileDock.classList.remove('hidden');
+                profileName = res.username;
+                document.getElementById('desktop-username').innerText = profileName;
+                DOM.authView.classList.add('hidden');
+                DOM.sidebarView.classList.remove('hidden');
+                DOM.chatView.classList.remove('hidden');
             } else {
-                elements.authError.innerText = res.message;
-                elements.authError.classList.remove('hidden');
+                DOM.authError.innerText = res.message;
+                DOM.authError.classList.remove('hidden');
             }
         });
 
-        // Matchmaking Execution Controls
-        function triggerMatchAction() {
-            if (!isSearchingOrMatched) {
-                socket.emit('find-match');
-            } else {
-                socket.emit('skip-match');
-                resetChatState('You skipped the conversation.');
-            }
-        }
+        // Matchmaking State Loops
+        DOM.matchBtn.addEventListener('click', () => {
+            socket.emit('find-match');
+        });
 
-        document.querySelectorAll('.desktop-match-btn, .desktop-skip-btn').forEach(b => b.addEventListener('click', triggerMatchAction));
-        elements.navMatch.addEventListener('click', triggerMatchAction);
+        DOM.cancelBtn.addEventListener('click', () => {
+            socket.emit('skip-match');
+            revertToLobby('Search cancelled.');
+        });
+
+        DOM.inlineSkip.addEventListener('click', () => {
+            if (matchState === 'connected') {
+                socket.emit('skip-match');
+                revertToLobby('You left the room.');
+            } else {
+                revertToLobby('Ready to match.');
+            }
+        });
 
         socket.on('waiting', () => {
-            isSearchingOrMatched = true;
-            updateMatchButtons(true, 'Searching...');
-            appendSystemMessage('Searching for a partner...');
+            matchState = 'queuing';
+            DOM.matchBtn.classList.add('hidden');
+            DOM.cancelBtn.classList.remove('hidden');
+            DOM.lobbyTitle.innerText = "Searching Layouts...";
+            DOM.lobbyDesc.innerText = "Waiting to link with someone online.";
+            DOM.radar.style.animation = "pulseRing 1s infinite alternate";
         });
 
         socket.on('match-found', (data) => {
-            isSearchingOrMatched = true;
-            updateMatchButtons(true, 'Skip Match');
-            elements.msgInp.removeAttribute('disabled');
-            elements.sendBtn.removeAttribute('disabled');
-            elements.partnerTitle.innerText = data.partnerName;
-            elements.partnerSub.innerText = "Connected & Active";
-            elements.chatBox.innerHTML = '';
-            appendSystemMessage(`Matched with ${data.partnerName}. Say hello!`);
+            matchState = 'connected';
+            DOM.lobbyDeck.classList.add('hidden');
+            DOM.msgInp.removeAttribute('disabled');
+            DOM.sendBtn.removeAttribute('disabled');
+            DOM.headerTitle.innerHTML = `<span class="status-dot"></span> ${data.partnerName}`;
+            DOM.headerSubtitle.innerText = "Secure Connection Active";
+            DOM.chatBox.innerHTML = '';
+            appendSystemMessage(`Connected with **${data.partnerName}**. Be respectful.`);
+            DOM.msgInp.focus();
         });
 
         socket.on('partner-disconnected', () => {
-            resetChatState('Your partner disconnected.');
+            revertToLobby('Stranger disconnected from the session.');
         });
 
-        function resetChatState(reasonText) {
-            isSearchingOrMatched = false;
-            elements.msgInp.setAttribute('disabled', 'true');
-            elements.sendBtn.setAttribute('disabled', 'true');
-            elements.msgInp.value = '';
-            elements.partnerTitle.innerText = "Stranger Profile";
-            elements.partnerSub.innerText = "Disconnected";
-            updateMatchButtons(false, 'Find Match');
-            appendSystemMessage(reasonText);
+        function revertToLobby(reason) {
+            matchState = 'idle';
+            DOM.msgInp.setAttribute('disabled', 'true');
+            DOM.sendBtn.setAttribute('disabled', 'true');
+            DOM.msgInp.value = '';
+            DOM.emojiPanel.classList.add('hidden');
+            DOM.headerTitle.innerText = "Lobby Portal";
+            DOM.headerSubtitle.innerText = "Disconnected";
+            DOM.cancelBtn.classList.add('hidden');
+            DOM.matchBtn.classList.remove('hidden');
+            DOM.lobbyTitle.innerText = "Find Your Match";
+            DOM.lobbyDesc.innerText = reason;
+            DOM.lobbyDeck.classList.remove('hidden');
         }
 
-        function updateMatchButtons(active, text) {
-            // Update mobile configuration states
-            elements.mobileMatchText.innerText = text;
-            if(active) {
-                elements.navMatch.classList.add('active-action');
-                document.querySelector('.desktop-match-btn').classList.add('hidden');
-                document.querySelector('.desktop-skip-btn').classList.remove('hidden');
-            } else {
-                elements.navMatch.classList.remove('active-action');
-                document.querySelector('.desktop-match-btn').classList.remove('hidden');
-                document.querySelector('.desktop-skip-btn').classList.add('hidden');
-            }
-        }
+        // Messaging Dispatch Frame Pipeline
+        DOM.sendBtn.addEventListener('click', postMessage);
+        DOM.msgInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') postMessage(); });
 
-        // Message Dispatch Frameworks
-        elements.sendBtn.addEventListener('click', dispatchMessage);
-        elements.msgInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') dispatchMessage(); });
-
-        function dispatchMessage() {
-            const txt = elements.msgInp.value.trim();
+        function postMessage() {
+            const txt = DOM.msgInp.value.trim();
             if(!txt) return;
             socket.emit('send-message', txt);
             appendMessage(txt, 'me');
-            elements.msgInp.value = '';
+            DOM.msgInp.value = '';
+            DOM.emojiPanel.classList.add('hidden');
         }
 
         socket.on('receive-message', (msg) => {
@@ -458,20 +375,34 @@
         });
 
         function appendMessage(text, side) {
-            const bubble = document.createElement('div');
-            bubble.className = `msg-bubble ${side}`;
-            bubble.innerText = text;
-            elements.chatBox.appendChild(bubble);
-            elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+            const node = document.createElement('div');
+            node.className = `msg-bubble ${side}`;
+            node.innerText = text;
+            DOM.chatBox.appendChild(node);
+            DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
         }
 
         function appendSystemMessage(text) {
-            const systemNode = document.createElement('div');
-            systemNode.className = 'status-system';
-            systemNode.innerText = text;
-            elements.chatBox.appendChild(systemNode);
-            elements.chatBox.scrollTop = elements.chatBox.scrollHeight;
+            const sysNode = document.createElement('div');
+            sysNode.className = 'status-system';
+            sysNode.innerText = text;
+            DOM.chatBox.appendChild(sysNode);
+            DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
         }
+
+        // Emoji Interactivity Panels
+        DOM.emojiToggle.addEventListener('click', () => {
+            DOM.emojiPanel.classList.toggle('hidden');
+        });
+
+        DOM.emojiPanel.querySelectorAll('span').forEach(em => {
+            em.addEventListener('click', () => {
+                if(!DOM.msgInp.disabled) {
+                    DOM.msgInp.value += em.innerText;
+                    DOM.msgInp.focus();
+                }
+            });
+        });
     </script>
 </body>
 </html>
