@@ -6,14 +6,10 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 const PORT = process.env.PORT || 3000;
-// We read this securely from Render's dashboard settings later
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK;
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -29,12 +25,7 @@ async function logToDiscord(title, description, color = 3447003) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                embeds: [{
-                    title: title,
-                    description: description,
-                    color: color,
-                    timestamp: new Date().toISOString()
-                }]
+                embeds: [{ title, description, color, timestamp: new Date().toISOString() }]
             })
         });
     } catch (err) {
@@ -44,23 +35,20 @@ async function logToDiscord(title, description, color = 3447003) {
 
 io.on('connection', (socket) => {
     socket.on('auth', ({ username, password, isRegistering }) => {
-        if (!username || !password) {
-            return socket.emit('auth-response', { success: false, message: 'Missing fields.' });
-        }
+        if (!username || !password) return socket.emit('auth-response', { success: false, message: 'Missing fields.' });
+        
         if (isRegistering) {
-            if (registeredUsers.has(username)) {
-                return socket.emit('auth-response', { success: false, message: 'Username already taken.' });
-            }
+            if (registeredUsers.has(username)) return socket.emit('auth-response', { success: false, message: 'Username taken.' });
             registeredUsers.set(username, password);
             logToDiscord('👤 New User Registered', `**Username:** \`${username}\``, 3066993);
         } else {
             if (!registeredUsers.has(username) || registeredUsers.get(username) !== password) {
-                return socket.emit('auth-response', { success: false, message: 'Invalid username or password.' });
+                return socket.emit('auth-response', { success: false, message: 'Invalid credentials.' });
             }
         }
         activeUsers.set(socket.id, { username, partnerId: null });
         socket.emit('auth-response', { success: true, username });
-        logToDiscord('🟢 User Logged In', `**Username:** \`${username}\` joined the platform.`, 3447003);
+        logToDiscord('🟢 User Logged In', `**Username:** \`${username}\``, 3447003);
     });
 
     socket.on('find-match', () => {
@@ -75,8 +63,10 @@ io.on('connection', (socket) => {
             if (partner && partnerId !== socket.id) {
                 user.partnerId = partnerId;
                 partner.partnerId = socket.id;
-                socket.emit('match-found', { partnerName: partner.username });
-                io.to(partnerId).emit('match-found', { partnerName: user.username });
+
+                // User who triggers the match will initiate the WebRTC call sequence
+                socket.emit('match-found', { partnerName: partner.username, initiateCall: true });
+                io.to(partnerId).emit('match-found', { partnerName: user.username, initiateCall: false });
                 logToDiscord('⚡ Match Made', `\`${user.username}\` paired with \`${partner.username}\``, 15105570);
             } else {
                 waitingQueue.push(socket.id);
@@ -84,6 +74,14 @@ io.on('connection', (socket) => {
         } else {
             waitingQueue.push(socket.id);
             socket.emit('waiting');
+        }
+    });
+
+    // WebRTC Signaling Forwarding Layer
+    socket.on('webrtc-signal', (data) => {
+        const user = activeUsers.get(socket.id);
+        if (user && user.partnerId) {
+            io.to(user.partnerId).emit('webrtc-signal', data);
         }
     });
 
@@ -109,18 +107,11 @@ function handleDisconnectOrSkip(socket, action) {
             if (partner) {
                 partner.partnerId = null;
                 io.to(partnerId).emit('partner-disconnected');
-                logToDiscord('💔 Match Broken', `\`${user.username}\` ${action}. \`${partner.username}\` is now alone.`, 15158332);
             }
             user.partnerId = null;
         }
-        if (action === 'disconnected') {
-            logToDiscord('🔴 User Left', `**Username:** \`${user.username}\` disconnected.`, 9807214);
-            activeUsers.delete(socket.id);
-        }
+        if (action === 'disconnected') activeUsers.delete(socket.id);
     }
 }
 
-server.listen(PORT, () => {
-    console.log(`Server executing safely on port ${PORT}`);
-});
-
+server.listen(PORT, () => console.log(`Server live on port ${PORT}`));
