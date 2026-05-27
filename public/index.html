@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AnonChat Pro v2</title>
+    <title>AnonChat Pro v2.1</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root[data-theme="dark"] {
@@ -36,21 +36,29 @@
             -webkit-tap-highlight-color: transparent;
         }
         
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-primary);
+        }
+
         body { 
-            background-color: var(--bg-primary); color: var(--text-main); 
-            transition: background 0.3s; height: 100dvh; 
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            color: var(--text-main); 
+            transition: background 0.3s;
+            display: flex;
+            flex-direction: column;
         }
         
         .hidden { display: none !important; }
         
-        /* Layout Grid Shell */
+        /* Layout Structure - Built to handle dynamic sizing updates safely */
         .app-container { 
-            width: 100%; height: 100dvh; background: var(--bg-surface); 
+            width: 100%; height: 100%; background: var(--bg-surface); 
             display: grid; grid-template-columns: 320px 1fr; overflow: hidden; 
         }
 
-        /* Sidebar UI */
+        /* Sidebar UI styling */
         .sidebar { 
             background: var(--bg-surface); border-right: 1px solid var(--border-color); 
             display: flex; flex-direction: column; justify-content: space-between; padding: 28px; 
@@ -68,12 +76,13 @@
         .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none; margin-top: 12px; }
         .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
 
-        /* Auth Panel */
+        /* Auth Panel and credential wrappers */
         .auth-panel { 
             grid-column: span 2; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; max-width: 400px; 
             margin: 0 auto; width: 100%; height: 100%; padding: 24px; 
         }
+        .auth-form { width: 100%; display: flex; flex-direction: column; align-items: center; }
         .auth-panel h2 { margin-bottom: 8px; font-size: 2rem; font-weight: 800; }
         .auth-panel p { color: var(--text-muted); margin-bottom: 28px; font-size: 0.9rem; }
         .input-group { width: 100%; margin-bottom: 18px; }
@@ -85,8 +94,8 @@
         }
         .input-group input:focus { border-color: #6366f1; }
 
-        /* Chat Core Workspace */
-        .chat-area { display: flex; flex-direction: column; height: 100dvh; background: var(--bg-primary); width: 100%; }
+        /* Chat Layout Area - Fixed Flex setup prevents vertical cutting bugs completely */
+        .chat-area { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); width: 100%; position: relative; overflow: hidden; }
         .chat-header { 
             padding: 18px 24px; background: var(--bg-surface);
             border-bottom: 1px solid var(--border-color); display: flex; 
@@ -94,13 +103,13 @@
         }
         .partner-info h4 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; }
-        .status-dot.offline { background: #64748b; }
 
-        /* Fixes Mobile Scrolling & Layout Visibility Container */
+        .chat-window-box { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
         .chat-messages { 
             flex: 1; padding: 24px; overflow-y: auto; 
             display: flex; flex-direction: column; gap: 14px;
-            scroll-behavior: smooth;
+            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
         
         .msg-bubble { 
@@ -112,30 +121,26 @@
         .msg-bubble.them { background: var(--chat-partner); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 4px; }
         .status-system { text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; margin: 12px 0; background: rgba(0,0,0,0.1); padding: 6px 14px; border-radius: 20px; align-self: center; }
 
-        /* Dynamic Input Bar Workspace */
-        .chat-input-wrapper { background: var(--bg-surface); border-top: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        /* Dynamic Input Wrapper Layout */
+        .chat-input-wrapper { background: var(--bg-surface); border-top: 1px solid var(--border-color); padding: 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
         .chat-input-bar { display: flex; gap: 10px; align-items: center; width: 100%; }
         
         .input-field-container { flex: 1; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 2px 8px 2px 16px; transition: border-color 0.2s; }
         .input-field-container:focus-within { border-color: #6366f1; }
         .input-field-container input { flex: 1; padding: 14px 0; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 1rem; }
         
-        .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px; cursor: pointer; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
-        .icon-btn:hover, .icon-btn.active { color: var(--text-main); }
+        .icon-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px; cursor: pointer; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
         
-        /* Inline Custom Emoji Shelf Drawer */
-        .emoji-shelf { display: flex; gap: 12px; overflow-x: auto; padding: 8px 4px; border-bottom: 1px solid var(--border-color); font-size: 1.4rem; -webkit-overflow-scrolling: touch; }
-        .emoji-shelf span { cursor: pointer; transition: transform 0.1s; user-select: none; }
-        .emoji-shelf span:active { transform: scale(1.3); }
+        .emoji-shelf { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; border-bottom: 1px solid var(--border-color); font-size: 1.4rem; -webkit-overflow-scrolling: touch; }
+        .emoji-shelf span { cursor: pointer; user-select: none; }
 
         .theme-toggle { cursor: pointer; padding: 10px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; font-weight: 600; }
 
-        /* Landing Control Deck Overlay (Big Search Engine Screen) */
+        /* Match Deck Search Display Overlay */
         .lobby-overlay { position: absolute; inset: 0; background: var(--bg-primary); z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
         .lobby-card { max-width: 420px; width: 100%; }
         .radar-pulse { width: 96px; height: 96px; background: var(--accent-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; position: relative; box-shadow: 0 0 30px var(--accent-glow); }
-        .radar-pulse::before, .radar-pulse::after { content: ''; position: absolute; inset: -4px; border: 2px solid #a855f7; border-radius: 50%; animation: pulseRing 1.5s linear infinite; opacity: 0; }
-        .radar-pulse::after { animation-delay: 0.75s; }
+        .radar-pulse::before { content: ''; position: absolute; inset: -4px; border: 2px solid #a855f7; border-radius: 50%; animation: pulseRing 1.5s linear infinite; opacity: 0; }
 
         @keyframes pulseRing {
             0% { transform: scale(1); opacity: 0.5; }
@@ -146,11 +151,10 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* 📱 RESPONSIVE MOBILE MARKUP OVERRIDES */
+        /* Responsive Mobile Layout Adjustments */
         @media (max-width: 768px) {
             .app-container { grid-template-columns: 1fr; }
             .sidebar { display: none !important; }
-            .chat-area { height: 100dvh; }
             .msg-bubble { max-width: 85%; }
             .mobile-header-btn { display: flex !important; }
         }
@@ -162,16 +166,20 @@
         <div id="auth-view" class="auth-panel">
             <div class="brand-logo" style="font-size: 2.2rem; margin-bottom: 8px;">AnonChat</div>
             <p>Connect instantly with real people worldwide.</p>
-            <div class="input-group">
-                <label>Custom Username</label>
-                <input type="text" id="username" placeholder="Pick an alias..." autocomplete="off">
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="••••••••">
-            </div>
-            <button class="btn" id="btn-login">Login Space</button>
-            <button class="btn btn-secondary" id="btn-register">Create New Profile</button>
+            
+            <form id="login-form" class="auth-form" onsubmit="return false;">
+                <div class="input-group">
+                    <label for="username">Custom Username</label>
+                    <input type="text" id="username" name="username" placeholder="Pick an alias..." autocomplete="username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn" id="btn-login">Login Space</button>
+                <button type="button" class="btn btn-secondary" id="btn-register">Create New Profile</button>
+            </form>
+            
             <p id="auth-error" style="color:#ef4444; font-size:0.85rem; margin-top:15px;" class="hidden"></p>
         </div>
 
@@ -195,7 +203,7 @@
                 <button class="theme-toggle mobile-header-btn" id="mobile-theme-btn" style="display:none;">🌓 Mode</button>
             </div>
             
-            <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <div class="chat-window-box">
                 <div id="lobby-deck" class="lobby-overlay">
                     <div class="lobby-card">
                         <div class="radar-pulse" id="radar-node">
@@ -238,7 +246,7 @@
         const socket = io(window.location.origin);
         let themeState = 'dark';
         let profileName = '';
-        let matchState = 'idle'; // idle, queuing, connected
+        let matchState = 'idle';
 
         const DOM = {
             authView: document.getElementById('auth-view'),
@@ -246,6 +254,7 @@
             chatView: document.getElementById('chat-view'),
             usernameInp: document.getElementById('username'),
             passwordInp: document.getElementById('password'),
+            loginForm: document.getElementById('login-form'),
             loginBtn: document.getElementById('btn-login'),
             registerBtn: document.getElementById('btn-register'),
             authError: document.getElementById('auth-error'),
@@ -265,7 +274,6 @@
             radar: document.getElementById('radar-node')
         };
 
-        // Theme management controls
         function toggleTheme() {
             themeState = themeState === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', themeState);
@@ -273,16 +281,19 @@
         document.getElementById('desktop-theme-btn').addEventListener('click', toggleTheme);
         document.getElementById('mobile-theme-btn').addEventListener('click', toggleTheme);
 
-        // Authentication Submission Pipeline
-        DOM.loginBtn.addEventListener('click', () => dispatchAuth(false));
+        // Native Form submissions intercept to trigger password save prompts
+        DOM.loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            dispatchAuth(false);
+        });
         DOM.registerBtn.addEventListener('click', () => dispatchAuth(true));
 
         function dispatchAuth(isRegistering) {
-            socket.emit('auth', {
-                username: DOM.usernameInp.value.trim(),
-                password: DOM.passwordInp.value,
-                isRegistering
-            });
+            const u = DOM.usernameInp.value.trim();
+            const p = DOM.passwordInp.value;
+            if(!u || !p) return;
+
+            socket.emit('auth', { username: u, password: p, isRegistering });
         }
 
         socket.on('auth-response', (res) => {
@@ -292,17 +303,14 @@
                 DOM.authView.classList.add('hidden');
                 DOM.sidebarView.classList.remove('hidden');
                 DOM.chatView.classList.remove('hidden');
+                window.scrollTo(0,0); // reset page alignment anomalies
             } else {
                 DOM.authError.innerText = res.message;
                 DOM.authError.classList.remove('hidden');
             }
         });
 
-        // Matchmaking State Loops
-        DOM.matchBtn.addEventListener('click', () => {
-            socket.emit('find-match');
-        });
-
+        DOM.matchBtn.addEventListener('click', () => socket.emit('find-match'));
         DOM.cancelBtn.addEventListener('click', () => {
             socket.emit('skip-match');
             revertToLobby('Search cancelled.');
@@ -321,9 +329,8 @@
             matchState = 'queuing';
             DOM.matchBtn.classList.add('hidden');
             DOM.cancelBtn.classList.remove('hidden');
-            DOM.lobbyTitle.innerText = "Searching Layouts...";
+            DOM.lobbyTitle.innerText = "Searching...";
             DOM.lobbyDesc.innerText = "Waiting to link with someone online.";
-            DOM.radar.style.animation = "pulseRing 1s infinite alternate";
         });
 
         socket.on('match-found', (data) => {
@@ -334,13 +341,11 @@
             DOM.headerTitle.innerHTML = `<span class="status-dot"></span> ${data.partnerName}`;
             DOM.headerSubtitle.innerText = "Secure Connection Active";
             DOM.chatBox.innerHTML = '';
-            appendSystemMessage(`Connected with **${data.partnerName}**. Be respectful.`);
-            DOM.msgInp.focus();
+            appendSystemMessage(`Connected with **${data.partnerName}**.`);
+            DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
         });
 
-        socket.on('partner-disconnected', () => {
-            revertToLobby('Stranger disconnected from the session.');
-        });
+        socket.on('partner-disconnected', () => revertToLobby('Stranger left the session.'));
 
         function revertToLobby(reason) {
             matchState = 'idle';
@@ -348,7 +353,7 @@
             DOM.sendBtn.setAttribute('disabled', 'true');
             DOM.msgInp.value = '';
             DOM.emojiPanel.classList.add('hidden');
-            DOM.headerTitle.innerText = "Lobby Portal";
+            DOM.headerTitle.innerText = "Welcome Portal";
             DOM.headerSubtitle.innerText = "Disconnected";
             DOM.cancelBtn.classList.add('hidden');
             DOM.matchBtn.classList.remove('hidden');
@@ -357,7 +362,6 @@
             DOM.lobbyDeck.classList.remove('hidden');
         }
 
-        // Messaging Dispatch Frame Pipeline
         DOM.sendBtn.addEventListener('click', postMessage);
         DOM.msgInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') postMessage(); });
 
@@ -370,9 +374,7 @@
             DOM.emojiPanel.classList.add('hidden');
         }
 
-        socket.on('receive-message', (msg) => {
-            appendMessage(msg, 'them');
-        });
+        socket.on('receive-message', (msg) => appendMessage(msg, 'them'));
 
         function appendMessage(text, side) {
             const node = document.createElement('div');
@@ -390,11 +392,7 @@
             DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
         }
 
-        // Emoji Interactivity Panels
-        DOM.emojiToggle.addEventListener('click', () => {
-            DOM.emojiPanel.classList.toggle('hidden');
-        });
-
+        DOM.emojiToggle.addEventListener('click', () => DOM.emojiPanel.classList.toggle('hidden'));
         DOM.emojiPanel.querySelectorAll('span').forEach(em => {
             em.addEventListener('click', () => {
                 if(!DOM.msgInp.disabled) {
