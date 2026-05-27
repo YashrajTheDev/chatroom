@@ -37,7 +37,8 @@ io.on('connection', (socket) => {
             finalName = `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
         }
 
-        activeUsers.set(socket.id, { username: finalName, partnerId: null, mode: null });
+        // Added 'ignoredUsers' array to keep track of skipped partner IDs
+        activeUsers.set(socket.id, { username: finalName, partnerId: null, mode: null, ignoredUsers: [] });
         socket.emit('auth-response', { success: true, username: finalName });
         logToDiscord('🟢 User Joined', `**Username:** \`${finalName}\``, 3066993);
     });
@@ -53,10 +54,31 @@ io.on('connection', (socket) => {
         let targetQueue = (mode === 'video') ? videoQueue : textQueue;
 
         if (targetQueue.length > 0) {
-            const partnerId = targetQueue.shift();
-            const partner = activeUsers.get(partnerId);
+            let partnerId = null;
+            let partnerIndex = -1;
 
-            if (partner && partnerId !== socket.id) {
+            // 1. Look for a partner who is NOT on the user's ignore list
+            for (let i = 0; i < targetQueue.length; i++) {
+                const potentialPartnerId = targetQueue[i];
+                if (!user.ignoredUsers.includes(potentialPartnerId) && potentialPartnerId !== socket.id) {
+                    partnerId = potentialPartnerId;
+                    partnerIndex = i;
+                    break;
+                }
+            }
+
+            // 2. Fallback: If EVERYONE in queue is ignored, take the first available person so the user isn't stuck alone forever
+            if (!partnerId && targetQueue[0] !== socket.id) {
+                partnerId = targetQueue[0];
+                partnerIndex = 0;
+            }
+
+            if (partnerId) {
+                // Remove them from the queue array
+                targetQueue.splice(partnerIndex, 1);
+                
+                const partner = activeUsers.get(partnerId);
+
                 user.partnerId = partnerId;
                 partner.partnerId = socket.id;
 
@@ -100,7 +122,12 @@ function handleDisconnect(socket, action) {
         if (user.partnerId) {
             const partnerId = user.partnerId;
             const partner = activeUsers.get(partnerId);
+            
             if (partner) {
+                // Add each other to the ignore/block lists so they don't immediately rematch on a Skip
+                user.ignoredUsers.push(partnerId);
+                partner.ignoredUsers.push(socket.id);
+
                 partner.partnerId = null;
                 io.to(partnerId).emit('partner-disconnected');
             }
@@ -108,6 +135,11 @@ function handleDisconnect(socket, action) {
         }
         if (action === 'disconnected') {
             logToDiscord('🔴 User Left', `**Username:** \`${user.username}\``, 15158332);
+            
+            // Clean up old references from other users' blocklists to save memory
+            activeUsers.forEach(u => {
+                u.ignoredUsers = u.ignoredUsers.filter(id => id !== socket.id);
+            });
             activeUsers.delete(socket.id);
         }
     }
